@@ -9,6 +9,7 @@ import warnings
 from builtins import bytes
 from datetime import datetime, timedelta
 from functools import partial
+from pathlib2 import Path
 
 import __main__
 import six
@@ -277,6 +278,8 @@ class LoggerWindow(Window):
                 0, lambda: QTimer.singleShot(0, lambda: self.run_workbox(run_workbox))
             )
 
+        self.initDebugFile()
+
     @Slot()
     def apply_options(self):
         """Apply editor options the user chose on the WorkboxPage.Options page."""
@@ -296,6 +299,26 @@ class LoggerWindow(Window):
             self.restorePrefs()
 
         self.update_workbox_stack()
+
+    def initDebugFile(self):
+        self.debugPath =""
+
+        home = Path.home()
+        if home.is_dir():
+            outDir = home / "temp" / "PrEditor"
+            outDir.mkdir(exist_ok=True, parents=True)
+
+            self.debugPath = outDir / "preditorDebugOutput.txt"
+            with open(self.debugPath, "w") as f:
+                f.write("")
+
+            msg = "Debugging to file: {}".format(self.debugPath)
+            self.console().write(msg)
+
+    def debugToFile(self, msg):
+        if self.debugPath:
+            with open(self.debugPath, "a") as f:
+                f.write(msg + "\n")
 
     def comment_toggle(self):
         self.current_workbox().__comment_toggle__()
