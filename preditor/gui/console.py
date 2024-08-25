@@ -15,7 +15,13 @@ from functools import partial
 import __main__
 from Qt import QtCompat
 from Qt.QtCore import QPoint, Qt, QTimer
-from Qt.QtGui import QColor, QFontMetrics, QTextCharFormat, QTextCursor, QTextDocument
+from Qt.QtGui import (
+    QColor,
+    QFontMetrics,
+    QTextCharFormat,
+    QTextCursor,
+    QTextDocument,
+)
 from Qt.QtWidgets import QAbstractItemView, QAction, QApplication, QTextEdit
 
 from .. import debug, settings, stream
@@ -110,6 +116,18 @@ class ConsolePrEdit(QTextEdit):
         # unusual(ie not 100%) os display scaling.
         if not self.cursorWidth():
             self.setCursorWidth(1)
+
+        # self.setContextMenuPolicy(Qt.CustomContextMenu)
+
+    def contextMenuEvent(self, event):
+        # position = self.mapTo(self.window(), QCursor.pos())
+        # position = self.mapToParent(QCursor.pos())
+        # position = self.mapToGlobal(QCursor.pos())
+        position = self.mapToGlobal(event.pos())
+        print("position: {}".format(position))
+        menu = self.createStandardContextMenu()
+        menu.setFont(self.window().font())
+        menu.exec(self.mapToGlobal(event.pos()))
 
     def doubleSingleShotSetScrollValue(self, origPercent):
         """This double QTimer.singleShot monkey business seems to be the only way
