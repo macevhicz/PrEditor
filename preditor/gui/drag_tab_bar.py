@@ -232,6 +232,7 @@ class DragTabBar(QTabBar):
         if self._context_menu_tab == -1:
             return
         menu = QMenu(self)
+        menu.setFont(self.window().font())
         act = menu.addAction('Rename')
         act.triggered.connect(self.rename_tab)
 
@@ -297,6 +298,10 @@ class DragTabBar(QTabBar):
         tab_widget.setTabBar(bar)
         tab_widget.setMovable(True)
         tab_widget.setDocumentMode(True)
+
+        sizePolicy = tab_widget.sizePolicy()
+        sizePolicy.setVerticalPolicy(QSizePolicy.Preferred)
+        tab_widget.setSizePolicy(sizePolicy)
 
         if menu:
             bar.setContextMenuPolicy(Qt.CustomContextMenu)
