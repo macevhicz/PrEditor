@@ -1,13 +1,13 @@
 from __future__ import absolute_import, print_function
 
-import os
-import tempfile
 import textwrap
+
+from pathlib2 import Path
 
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QStackedWidget
 
-from ..prefs import prefs_path
+from .. import prefs
 
 
 class WorkboxMixin(object):
@@ -20,8 +20,9 @@ class WorkboxMixin(object):
         super(WorkboxMixin, self).__init__(parent=parent, **kwargs)
         self._filename_pref = filename
         self._is_loaded = False
-        self._tempdir = None
+
         self._tempfile = tempfile
+        self._backup_file = None
         self.core_name = core_name
 
     def __auto_complete_enabled__(self):
@@ -256,9 +257,10 @@ class WorkboxMixin(object):
 
     def __restore_prefs__(self, prefs):
         self._filename_pref = prefs.get('filename')
+        self._backup_file = prefs.get('backup_file')
         self._tempfile = prefs.get('tempfile')
 
-    def __save_prefs__(self, name, current=None):
+    def __save_prefs__(self, group_name, name, current=None):
         ret = {}
         # Hopefully the alphabetical sorting of this dict is preserved in py3
         # to make it easy to diff the json pref file if ever required.
@@ -266,55 +268,45 @@ class WorkboxMixin(object):
             ret['current'] = current
         ret['filename'] = self._filename_pref
         ret['name'] = name
-        ret['tempfile'] = self._tempfile
+        ret['backup_file'] = self._backup_file
 
         if not self._is_loaded:
             return ret
 
         if self._filename_pref:
             self.__save__()
-        else:
-            if not self._tempfile:
-                self._tempfile = self.__create_tempfile__()
-                ret['tempfile'] = self._tempfile
-            self.__write_file__(
-                self.__tempfile__(create=True),
-                self.__text__(),
-            )
 
+        # Save backup file, but only if contents are different than last saved backup
+        data = self.get_workbox_version_text(group_name, name, prefs.VersionTypes.Last)
+        existing_text, _, _, _ = data
+        unchanged = existing_text == self.__text__()
+        if not unchanged:
+            temp_path = prefs.create_stamped_path(self.core_name, group_name, name)
+            self._backup_file = str(temp_path)
+            self.__write_file__(self._backup_file, self.__text__())
+            ret['backup_file'] = self._backup_file
         return ret
 
-    def __tempdir__(self, create=False):
-        if self._tempdir is None:
-            self._tempdir = prefs_path('workboxes', core_name=self.core_name)
+    def get_workbox_version_text(self, group_name, workbox_name, versionType):
+        filepath, idx, count = prefs.get_backup_version_info(
+            self.core_name, group_name, workbox_name, versionType, self._backup_file
+        )
+        txt = ""
+        if filepath and Path(filepath).is_file():
+            txt = self.__open_file__(str(filepath))
 
-        if create and not os.path.exists(self._tempdir):
-            os.makedirs(self._tempdir)
+        return txt, filepath, idx, count
 
-        return self._tempdir
+    def load_workbox_version_text(self, group_name, workbox_name, versionType):
+        data = self.get_workbox_version_text(group_name, workbox_name, versionType)
+        txt, filepath, idx, count = data
+        self._backup_file = str(filepath)
 
-    def __tempfile__(self, create=False):
-        if self._tempfile:
-            return os.path.join(self.__tempdir__(create=create), self._tempfile)
+        self.__set_text__(txt, update_last_saved_text=False)
+        self.__tab_widget__().tabBar().update()
 
-    def __create_tempfile__(self):
-        """Creates a temporary file to be used by `__tempfile__` to store this
-        editors text contents stored in `__tempdir__`."""
-        with tempfile.NamedTemporaryFile(
-            prefix='workbox_',
-            suffix='.py',
-            dir=self.__tempdir__(create=True),
-            delete=False,
-        ) as fle:
-            name = fle.name
-
-        return os.path.basename(name)
-
-    def __remove_tempfile__(self):
-        """Removes `__tempfile__` if it is being used."""
-        tempfile = self.__tempfile__()
-        if tempfile and os.path.exists(tempfile):
-            os.remove(tempfile)
+        filename = Path(filepath).name
+        return filename, idx, count
 
     @classmethod
     def __open_file__(cls, filename):
@@ -334,8 +326,11 @@ class WorkboxMixin(object):
         self._is_loaded = True
         if self._filename_pref:
             self.__load__(self._filename_pref)
+        elif self._backup_file:
+            txt = self.__open_file__(self._backup_file)
+            self.__set_text__(txt)
         elif self._tempfile:
-            txt = self.__open_file__(self.__tempfile__())
+            txt = self.__open_file__(self.temp_file(self._tempfile, self.core_name))
             self.__set_text__(txt)
 
     def process_shortcut(self, event, run=True):
