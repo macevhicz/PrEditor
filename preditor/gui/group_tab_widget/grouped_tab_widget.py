@@ -27,7 +27,8 @@ class GroupedTabWidget(OneTabWidget):
         self.uiCornerBTN.released.connect(lambda: self.add_new_editor())
         self.setCornerWidget(self.uiCornerBTN, Qt.TopRightCorner)
 
-    def add_new_editor(self, title="Workbox"):
+    def add_new_editor(self, title="Workbox01"):
+        title = self.get_next_available_tab_name(title)
         editor, title = self.default_tab(title)
         index = self.addTab(editor, title)
         self.setCurrentIndex(index)
@@ -51,13 +52,9 @@ class GroupedTabWidget(OneTabWidget):
             QMessageBox.Yes | QMessageBox.Cancel,
         )
         if ret == QMessageBox.Yes:
-            # If the tab was saved to a temp file, remove it from disk
-            editor = self.widget(index)
-            editor.__remove_tempfile__()
-
             super(GroupedTabWidget, self).close_tab(index)
 
-    def default_tab(self, title='Workbox'):
+    def default_tab(self, title='Workbox01'):
         kwargs = self.editor_kwargs if self.editor_kwargs else {}
         editor = self.editor_cls(parent=self, core_name=self.core_name, **kwargs)
         return editor, title

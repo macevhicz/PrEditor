@@ -17,6 +17,34 @@ class OneTabWidget(QTabWidget):
         super(OneTabWidget, self).__init__(*args, **kwargs)
         self.tabCloseRequested.connect(self.close_tab)
 
+    def get_next_available_tab_name(self, name):
+        name = name.replace(" ", "_")
+
+        existing_names = [self.tabText(i).lower() for i in range(self.count())]
+
+        base = ""
+        iter_str = ""
+        letter_found = False
+        for char in reversed(name):
+            if char.isdigit() and not letter_found:
+                iter_str += char
+            else:
+                letter_found = True
+                base += char
+        # Reverse the backwards strings
+        base = base[::-1]
+        iter_str = iter_str[::-1]
+        iteration = int(iter_str) if iter_str else 0
+
+        if name.lower() in existing_names:
+            for _ in range(1000):
+                iteration += 1
+                new_iter_str = str(iteration).zfill(2)
+                name = base + new_iter_str
+                if name.lower() not in existing_names:
+                    break
+        return name
+
     def addTab(self, *args, **kwargs):  # noqa: N802
         ret = super(OneTabWidget, self).addTab(*args, **kwargs)
         self.update_closable_tabs()
