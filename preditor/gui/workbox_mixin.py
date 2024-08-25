@@ -1,18 +1,31 @@
 from __future__ import absolute_import, print_function
 
+import datetime
 import os
-import tempfile
+import re
 import textwrap
+
+from pathlib2 import Path
 
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QStackedWidget
 
 from ..prefs import prefs_path
 
+TIME_FORMAT = "-%Y-%m-%d-%H-%M-%S"
+
 
 class WorkboxMixin(object):
     _warning_text = None
     """When a user is picking this Workbox class, show a warning with this text."""
+
+    class VersionTypes:
+        """Nice names for the workbox version types."""
+
+        First = 0
+        Previous = 1
+        Next = 2
+        Last = 3
 
     def __init__(
         self, parent=None, tempfile=None, filename=None, core_name=None, **kwargs
@@ -22,6 +35,7 @@ class WorkboxMixin(object):
         self._is_loaded = False
         self._tempdir = None
         self._tempfile = tempfile
+        self._backup_file = None
         self.core_name = core_name
 
     def __auto_complete_enabled__(self):
@@ -256,9 +270,10 @@ class WorkboxMixin(object):
 
     def __restore_prefs__(self, prefs):
         self._filename_pref = prefs.get('filename')
+        self._backup_file = prefs.get('backup_file')
         self._tempfile = prefs.get('tempfile')
 
-    def __save_prefs__(self, name, current=None):
+    def __save_prefs__(self, group_name, name, current=None):
         ret = {}
         # Hopefully the alphabetical sorting of this dict is preserved in py3
         # to make it easy to diff the json pref file if ever required.
@@ -266,22 +281,23 @@ class WorkboxMixin(object):
             ret['current'] = current
         ret['filename'] = self._filename_pref
         ret['name'] = name
-        ret['tempfile'] = self._tempfile
+        ret['backup_file'] = self._backup_file
 
         if not self._is_loaded:
             return ret
 
         if self._filename_pref:
             self.__save__()
-        else:
-            if not self._tempfile:
-                self._tempfile = self.__create_tempfile__()
-                ret['tempfile'] = self._tempfile
-            self.__write_file__(
-                self.__tempfile__(create=True),
-                self.__text__(),
-            )
 
+        # Save backup file, but only if contents are different than last saved backup
+        data = self.get_workbox_version_text(group_name, name, self.VersionTypes.Last)
+        existing_text, _, _, _ = data
+        unchanged = existing_text == self.__text__()
+        if not unchanged:
+            temp_path = self.__create_stamped_path__(group_name, name)
+            self._backup_file = str(temp_path)
+            self.__write_file__(self._backup_file, self.__text__())
+            ret['backup_file'] = self._backup_file
         return ret
 
     def __tempdir__(self, create=False):
@@ -297,24 +313,65 @@ class WorkboxMixin(object):
         if self._tempfile:
             return os.path.join(self.__tempdir__(create=create), self._tempfile)
 
-    def __create_tempfile__(self):
-        """Creates a temporary file to be used by `__tempfile__` to store this
-        editors text contents stored in `__tempdir__`."""
-        with tempfile.NamedTemporaryFile(
-            prefix='workbox_',
-            suffix='.py',
-            dir=self.__tempdir__(create=True),
-            delete=False,
-        ) as fle:
-            name = fle.name
+    def __create_stamped_path__(self, group_name, name):
+        directory = self.__tempdir__(create=True)
 
-        return os.path.basename(name)
+        now = datetime.datetime.now()
+        time_str = now.strftime(TIME_FORMAT)
+        name += time_str
 
-    def __remove_tempfile__(self):
-        """Removes `__tempfile__` if it is being used."""
-        tempfile = self.__tempfile__()
-        if tempfile and os.path.exists(tempfile):
-            os.remove(tempfile)
+        path = (Path(directory) / group_name / name).with_suffix(".py")
+        path.parent.mkdir(exist_ok=True)
+        return path
+
+    def __get_file_group__(self, group_name, workbox_name):
+        directory = Path(self.__tempdir__()) / group_name
+
+        globStr = "{}*".format(workbox_name)
+
+        datetime_pattern = r"-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}"
+        pattern = workbox_name + datetime_pattern
+
+        files = list(directory.glob(globStr))
+
+        files = [file for file in files if re.match(pattern, file.stem)]
+        return files
+
+    def get_workbox_version_text(self, group_name, workbox_name, versionType):
+        files = self.__get_file_group__(group_name, workbox_name)
+        if not files:
+            return ("", "", 0, 0)
+        count = len(files)
+
+        idx = len(files) - 1
+        if versionType == self.VersionTypes.First:
+            idx = 0
+        elif versionType == self.VersionTypes.Last:
+            idx = len(files) - 1
+        else:
+            current_name = Path(self._backup_file) if self._backup_file else ""
+            if current_name in files:
+                idx = files.index(current_name)
+                if versionType == self.VersionTypes.Previous:
+                    idx -= 1
+                    idx = max(idx, 0)
+                else:
+                    idx += 1
+                    idx = min(idx, count - 1)
+
+        filepath = files[idx]
+        self._backup_file = str(filepath)
+        txt = self.__open_file__(str(filepath))
+
+        return txt, filepath.name, idx + 1, count
+
+    def load_workbox_version_text(self, group_name, workbox_name, versionType):
+        txt, filename, idx, count = self.get_workbox_version_text(
+            group_name, workbox_name, versionType
+        )
+        self.__set_text__(txt)
+
+        return filename, idx, count
 
     @classmethod
     def __open_file__(cls, filename):
@@ -334,6 +391,9 @@ class WorkboxMixin(object):
         self._is_loaded = True
         if self._filename_pref:
             self.__load__(self._filename_pref)
+        elif self._backup_file:
+            txt = self.__open_file__(self._backup_file)
+            self.__set_text__(txt)
         elif self._tempfile:
             txt = self.__open_file__(self.__tempfile__())
             self.__set_text__(txt)

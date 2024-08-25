@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import os
-import re
-
 import six
+
+from pathlib2 import Path
+
 from Qt.QtCore import Qt
 from Qt.QtGui import QIcon
 from Qt.QtWidgets import QHBoxLayout, QMessageBox, QToolButton, QWidget
@@ -70,7 +70,7 @@ class GroupTabWidget(OneTabWidget):
         self.uiCornerBTN = corner
         self.setCornerWidget(self.uiCornerBTN, Qt.TopRightCorner)
 
-    def add_new_tab(self, group, title="Workbox"):
+    def add_new_tab(self, group, title="Workbox01"):
         """Adds a new tab to the requested group, creating the group if the group
         doesn't exist.
 
@@ -86,19 +86,15 @@ class GroupTabWidget(OneTabWidget):
         """
         parent = None
         if not group:
-            last = 0
-            for i in range(self.count()):
-                match = re.match(r'Group (\d+)', self.tabText(i))
-                if match:
-                    last = max(last, int(match.group(1)))
-            group = "Group {}".format(last + 1)
+            group = self.get_next_available_tab_name("Group")
         elif group is True:
             group = self.currentIndex()
+
         if isinstance(group, int):
             group_title = self.tabText(group)
             parent = self.widget(group)
         elif isinstance(group, six.string_types):
-            group_title = group
+            group_title = group.replace(" ", "_")
             index = self.index_for_text(group)
             if index != -1:
                 parent = self.widget(index)
@@ -145,13 +141,6 @@ class GroupTabWidget(OneTabWidget):
             QMessageBox.Yes | QMessageBox.Cancel,
         )
         if ret == QMessageBox.Yes:
-            # Clean up all temp files created by this group's editors if they
-            # are not using actual saved files.
-            tab_widget = self.widget(self.currentIndex())
-            for index in range(tab_widget.count()):
-                editor = tab_widget.widget(index)
-                editor.__remove_tempfile__()
-
             super(GroupTabWidget, self).close_tab(self.currentIndex())
 
     def current_groups_widget(self):
@@ -160,7 +149,7 @@ class GroupTabWidget(OneTabWidget):
         if editor_tab:
             return editor_tab.currentWidget()
 
-    def default_tab(self, title='Group 1'):
+    def default_tab(self, title='Group01'):
         widget = GroupedTabWidget(
             parent=self,
             editor_kwargs=self.editor_kwargs,
@@ -217,6 +206,8 @@ class GroupTabWidget(OneTabWidget):
             group_name = group['name']
             tab_widget = None
 
+            group_name = self.get_next_available_tab_name(group_name)
+
             for tab in group.get('tabs', []):
                 # Only add this tab if, there is data on disk to load. The user can
                 # open multiple instances of PrEditor using the same prefs. The
@@ -228,13 +219,13 @@ class GroupTabWidget(OneTabWidget):
                 # restoring a tab with empty text.
                 filename = tab.get('filename')
                 temp_name = tab.get('tempfile')
-                if filename:
-                    if not os.path.exists(filename):
-                        continue
-                if not temp_name:
+                backup_file = tab.get('backup_file')
+
+                if filename and not Path(filename).is_file():
                     continue
-                temp_name = os.path.join(workbox_dir, temp_name)
-                if not os.path.exists(temp_name):
+                if backup_file and not Path(backup_file).is_file():
+                    continue
+                if temp_name and not (Path(workbox_dir) / temp_name).is_file():
                     continue
 
                 # There is a file on disk, add the tab, creating the group
@@ -293,7 +284,9 @@ class GroupTabWidget(OneTabWidget):
                 current = True if j == current_editor else None
                 tabs.append(
                     tab_widget.widget(j).__save_prefs__(
-                        name=tab_widget.tabText(j), current=current
+                        group_name=self.tabText(i),
+                        name=tab_widget.tabText(j),
+                        current=current,
                     )
                 )
 

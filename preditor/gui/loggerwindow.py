@@ -9,6 +9,7 @@ import warnings
 from builtins import bytes
 from datetime import datetime, timedelta
 from functools import partial
+from pathlib2 import Path
 
 import __main__
 import six
@@ -193,6 +194,10 @@ class LoggerWindow(Window):
         self.uiNextTabACT.triggered.connect(self.nextTab)
         self.uiPrevTabACT.triggered.connect(self.prevTab)
 
+        # Navigate workbox versions
+        self.max_num_workbox_backups = 50
+        self.uiSetMaxWorkboxBackupsACT.triggered.connect(self.setMaxWorkboxBackups)
+
         self.uiTab1ACT.triggered.connect(partial(self.gotoTabByIndex, 1))
         self.uiTab2ACT.triggered.connect(partial(self.gotoTabByIndex, 2))
         self.uiTab3ACT.triggered.connect(partial(self.gotoTabByIndex, 3))
@@ -286,6 +291,20 @@ class LoggerWindow(Window):
 
         self.setWorkboxFontBasedOnConsole()
         self.setEditorChooserFontBasedOnConsole()
+
+        # Scroll thru workbox versions
+        self.uiShowFirstWorkboxVersionACT.triggered.connect(
+            partial(self.change_to_workbox_version_text, prefs.VersionTypes.First)
+        )
+        self.uiShowPreviousWorkboxVersionACT.triggered.connect(
+            partial(self.change_to_workbox_version_text, prefs.VersionTypes.Previous)
+        )
+        self.uiShowNextWorkboxVersionACT.triggered.connect(
+            partial(self.change_to_workbox_version_text, prefs.VersionTypes.Next)
+        )
+        self.uiShowLastWorkboxVersionACT.triggered.connect(
+            partial(self.change_to_workbox_version_text, prefs.VersionTypes.Last)
+        )
 
         self.setup_run_workbox()
 
@@ -421,6 +440,25 @@ class LoggerWindow(Window):
         code running within PythonLogger.
         """
         __main__.run_workbox = self.run_workbox
+
+    def change_to_workbox_version_text(self, versionType):
+        tab_widget = self.uiWorkboxTAB
+
+        tab_group_index = tab_widget.currentIndex()
+        group_name = tab_widget.tabText(tab_group_index)
+
+        tab_group = self.uiWorkboxTAB.currentWidget()
+        current_index = tab_group.currentIndex()
+        workbox_name = tab_group.tabText(current_index)
+
+        workbox_widget = tab_group.currentWidget()
+        filename, idx, count = workbox_widget.load_workbox_version_text(
+            group_name, workbox_name, versionType
+        )
+
+        txt = "{} [{}/{}]".format(filename, idx, count)
+        self.setStatusText(txt)
+        self.autoHideStatusText()
 
     def openSetPreferredTextEditorDialog(self):
         dlg = SetTextEditorPathDialog(parent=self)
@@ -644,6 +682,28 @@ class LoggerWindow(Window):
         if self._stds:
             self._stds[0].clear(stamp=True)
 
+    def prune_backup_files__(self):
+        directory = prefs.prefs_path('workboxes', core_name=self.name)
+        files = Path(directory).rglob("*.*")
+        pattern = r"(?P<name>\w*)-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}.py"
+
+        files_dict = {}
+        for file in files:
+            match = re.search(pattern, str(file))
+            if not match:
+                continue
+            name = match.groupdict().get("name")
+
+            files_dict.setdefault(file.parent.name, {})
+            files_dict[file.parent.name].setdefault(name, []).append(file)
+
+        for _group, workbox_dict in files_dict.items():
+            for _name, files in workbox_dict.items():
+                files.sort(key=lambda f: str(f).lower())
+                files.reverse()
+                for file in files[self.max_num_workbox_backups :]:
+                    file.unlink()
+
     def closeEvent(self, event):
         self.recordPrefs()
         # Save the logger configuration
@@ -754,6 +814,7 @@ class LoggerWindow(Window):
                     self.uiHighlightExactCompletionACT.isChecked()
                 ),
                 'dont_ask_again': self.dont_ask_again,
+                'max_num_workbox_backups': self.max_num_workbox_backups,
             }
         )
 
@@ -771,6 +832,9 @@ class LoggerWindow(Window):
         pref['editor_cls'] = self.editor_cls_name
 
         self.save_prefs(pref)
+
+        self.setStatusText("Prefs saved")
+        self.autoHideStatusText()
 
     def load_prefs(self):
         filename = prefs.prefs_path('preditor_pref.json', core_name=self.name)
@@ -901,6 +965,7 @@ class LoggerWindow(Window):
             self.setStyleSheet(self._stylesheet)
         self.uiConsoleTXT.flash_time = pref.get('flash_time', 1.0)
 
+        self.max_num_workbox_backups = pref.get('max_num_workbox_backups', 20)
         self.uiWorkboxTAB.restore_prefs(pref.get('workbox_prefs', {}))
 
         hintingEnabled = pref.get('hintingEnabled', True)
@@ -1088,16 +1153,73 @@ class LoggerWindow(Window):
         self.uiRunSelectedACT.setIcon(QIcon(resourcePath('img/playlist-play.png')))
         self.uiRunAllACT.setIcon(QIcon(resourcePath('img/play.png')))
 
+    def inputDialog(self, title, text, mode, value, minimum=None, maximum=None):
+        inputDialog = QInputDialog()
+        inputDialog.setInputMode(mode)
+        inputDialog.setWindowTitle(title)
+        inputDialog.setLabelText(text)
+        inputDialog.setFont(self.font())
+
+        if mode == QInputDialog.IntInput:
+            if minimum is not None:
+                inputDialog.setIntMinimum(int(minimum))
+            if maximum is not None:
+                inputDialog.setIntMaximum(int(maximum))
+            inputDialog.setIntValue(value)
+        elif mode == QInputDialog.DoubleInput:
+            if minimum is not None:
+                inputDialog.setDoubleMinimum(float(minimum))
+            if maximum is not None:
+                inputDialog.setDoubleMaximum(float(maximum))
+            inputDialog.setDoubleValue(value)
+        elif mode == QInputDialog.TextInput:
+            inputDialog.setTextValue(value)
+
+        value = None
+        success = bool(inputDialog.exec_())
+        if success:
+            if mode == QInputDialog.IntInput:
+                value = inputDialog.intValue()
+                inputDialog.setIntMinimum = minimum
+                inputDialog.setIntMaximum = maximum
+            elif mode == QInputDialog.DoubleInput:
+                value = inputDialog.doubleValue()
+                inputDialog.setIntMinimum = minimum
+                inputDialog.setIntMaximum = maximum
+            elif mode == QInputDialog.TextInput:
+                value = inputDialog.textValue()
+
+        return value, success
+
     def setFlashWindowInterval(self):
         value = self.uiConsoleTXT.flash_time
-        msg = (
+        title = "Set flash window"
+        text = (
             'If running code in the logger takes X seconds or longer,\n'
             'the window will flash if it is not in focus.\n'
             'Setting the value to zero will disable flashing.'
         )
-        value, success = QInputDialog.getDouble(self, 'Set flash window', msg, value)
+        mode = QInputDialog.DoubleInput
+        value, success = self.inputDialog(title, text, mode, value)
         if success:
             self.uiConsoleTXT.flash_time = value
+
+    def setMaxWorkboxBackups(self):
+        title = "Max workbox backups"
+        text = (
+            'Set the maximun number of backup files on disk per workbox.\n'
+            'Must be at least 1'
+        )
+        mode = QInputDialog.IntInput
+        value = self.max_num_workbox_backups
+        minimum = 1
+        maximum = 10000
+        value, success = self.inputDialog(
+            title, text, mode, value, minimum=minimum, maximum=maximum
+        )
+        if success:
+            value = max(value, 1)
+            self.max_num_workbox_backups = value
 
     def setWordWrap(self, state):
         if state:
