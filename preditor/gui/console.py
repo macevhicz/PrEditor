@@ -15,7 +15,13 @@ from functools import partial
 import __main__
 from Qt import QtCompat
 from Qt.QtCore import QPoint, Qt, QTimer
-from Qt.QtGui import QColor, QFontMetrics, QTextCharFormat, QTextCursor, QTextDocument
+from Qt.QtGui import (
+    QColor,
+    QFontMetrics,
+    QTextCharFormat,
+    QTextCursor,
+    QTextDocument,
+)
 from Qt.QtWidgets import QAbstractItemView, QAction, QApplication, QTextEdit
 
 from .. import settings, stream
@@ -110,6 +116,19 @@ class ConsolePrEdit(QTextEdit):
         # unusual(ie not 100%) os display scaling.
         if not self.cursorWidth():
             self.setCursorWidth(1)
+
+        # self.setContextMenuPolicy(Qt.CustomContextMenu)
+
+    def contextMenuEvent(self, event):
+        """Override contextMenuEvent method in order to have the font match the window's
+        gui font (size)
+
+        Args:
+            event (QEvent): The event automatically sent to the event handler
+        """
+        menu = self.createStandardContextMenu()
+        menu.setFont(self.window().font())
+        menu.exec(self.mapToGlobal(event.pos()))
 
     def doubleSingleShotSetScrollValue(self, origPercent):
         """This double QTimer.singleShot monkey business seems to be the only way

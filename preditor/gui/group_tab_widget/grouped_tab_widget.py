@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
 from Qt.QtCore import Qt
-from Qt.QtGui import QIcon
 from Qt.QtWidgets import QMessageBox, QToolButton
 
-from ... import resourcePath
 from ..drag_tab_bar import DragTabBar
 from ..workbox_text_edit import WorkboxTextEdit
 from .one_tab_widget import OneTabWidget
@@ -23,7 +21,6 @@ class GroupedTabWidget(OneTabWidget):
 
         self.uiCornerBTN = QToolButton(self)
         self.uiCornerBTN.setText('+')
-        self.uiCornerBTN.setIcon(QIcon(resourcePath('img/file-plus.png')))
         self.uiCornerBTN.released.connect(lambda: self.add_new_editor())
         self.setCornerWidget(self.uiCornerBTN, Qt.TopRightCorner)
 
