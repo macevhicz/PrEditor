@@ -145,6 +145,7 @@
     <addaction name="uiRunSelectedACT"/>
     <addaction name="uiRunSelectedDontTruncateACT"/>
     <addaction name="uiRunAllACT"/>
+    <addaction name="uiRunFirstWorkboxACT"/>
     <addaction name="separator"/>
     <addaction name="uiClearBeforeRunningACT"/>
     <addaction name="uiClearToLastPromptACT"/>

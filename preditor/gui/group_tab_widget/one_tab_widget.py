@@ -17,7 +17,11 @@ class OneTabWidget(QTabWidget):
         super(OneTabWidget, self).__init__(*args, **kwargs)
         self.tabCloseRequested.connect(self.close_tab)
 
-    def get_next_available_tab_name(self, name):
+        self.default_workbox_title = "Workbox01"
+
+    def get_next_available_tab_name(self, name=None):
+        if name is None:
+            name = self.default_workbox_title
         name = name.replace(" ", "_")
 
         existing_names = [self.tabText(i).lower() for i in range(self.count())]
