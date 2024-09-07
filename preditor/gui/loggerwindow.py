@@ -14,7 +14,7 @@ from pathlib2 import Path
 import __main__
 import six
 from Qt import QtCompat, QtCore, QtWidgets
-from Qt.QtCore import QByteArray, Qt, QTimer, Signal, Slot
+from Qt.QtCore import QByteArray, QFileSystemWatcher, Qt, QTimer, Signal, Slot
 from Qt.QtGui import QCursor, QFont, QIcon, QTextCursor
 from Qt.QtWidgets import (
     QApplication,
@@ -295,6 +295,11 @@ class LoggerWindow(Window):
             action.setCheckable(True)
             action.setChecked(self._stylesheet == style_name)
             action.triggered.connect(partial(self.setStyleSheet, style_name))
+
+        # Start the filesystem monitor
+        self.openFileMonitor = QFileSystemWatcher(self)
+        self.openFileMonitor.fileChanged.connect(self.linkedFileChanged)
+        self._reloadRequested = set()
 
         self.uiConsoleTOOLBAR.show()
         loggerName = QApplication.instance().translate(
@@ -797,6 +802,34 @@ class LoggerWindow(Window):
                 files.reverse()
                 for file in files[self.max_num_workbox_backups :]:
                     file.unlink()
+
+    def linkedFileChanged(self, filename):
+        # font = self.font()
+        group = self.uiWorkboxTAB
+        idx_tup = None
+        for group_idx in range(group.count()):
+            grouped = group.widget(group_idx)
+            for editor_idx in range(grouped.count()):
+                editor = grouped.widget(editor_idx)
+                if editor.filename() == filename:
+                    idx_tup = (group_idx, editor_idx)
+                    self._reloadRequested.add(idx_tup)
+
+        if idx_tup:
+            self.updateLink(idx_tup)
+
+    def updateLink(self, idx_tup):
+        if idx_tup in self._reloadRequested:
+            group_idx, editor_idx = idx_tup
+            editor = self.uiWorkboxTAB.widget(group_idx).widget(editor_idx)
+            filename = editor.filename()
+
+            if Path(filename).is_file():
+                editor.load(filename)
+            else:
+                pass
+                # Do stuff to disconnect link
+                editor.enableFileWatching(False)
 
     def closeEvent(self, event):
         self.recordPrefs()

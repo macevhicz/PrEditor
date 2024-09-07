@@ -38,6 +38,19 @@ class WorkboxMixin(object):
         self._backup_file = None
         self.core_name = core_name
 
+        self._last_saved_text = ""
+        self._tab_widget = parent
+
+    def __set_last_saved_text__(self, text):
+        self._last_saved_text = text
+        self.__tab_widget__().tabBar().update()
+
+    def __last_saved_text__(self):
+        return self._last_saved_text
+
+    def __tab_widget__(self):
+        return self._tab_widget
+
     def __auto_complete_enabled__(self):
         raise NotImplementedError("Mixin method not overridden.")
 
@@ -242,7 +255,7 @@ class WorkboxMixin(object):
         """
         raise NotImplementedError("Mixin method not overridden.")
 
-    def __set_text__(self, txt):
+    def __set_text__(self, txt, update_last_saved_text=True):
         """Replace all of the current text with txt. This method should be overridden
         by sub-classes, and call super to mark the widget as having been loaded.
         If text is being set on the widget, it most likely should be marked as
@@ -297,6 +310,7 @@ class WorkboxMixin(object):
             temp_path = self.__create_stamped_path__(group_name, name)
             self._backup_file = str(temp_path)
             self.__write_file__(self._backup_file, self.__text__())
+            self.__set_last_saved_text__(self.__text__())
             ret['backup_file'] = self._backup_file
         return ret
 
@@ -316,24 +330,26 @@ class WorkboxMixin(object):
     def __create_stamped_path__(self, group_name, name):
         directory = self.__tempdir__(create=True)
 
+        stem = Path(name).stem
+        suffix = Path(name).suffix or ".py"
+
         now = datetime.datetime.now()
         time_str = now.strftime(TIME_FORMAT)
-        name += time_str
+        stem += time_str
 
-        path = (Path(directory) / group_name / name).with_suffix(".py")
+        path = (Path(directory) / group_name / stem).with_suffix(suffix)
         path.parent.mkdir(exist_ok=True)
         return path
 
     def __get_file_group__(self, group_name, workbox_name):
         directory = Path(self.__tempdir__()) / group_name
 
+        workbox_name = Path(workbox_name).stem
         globStr = "{}*".format(workbox_name)
-
         datetime_pattern = r"-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}"
         pattern = workbox_name + datetime_pattern
 
         files = list(directory.glob(globStr))
-
         files = [file for file in files if re.match(pattern, file.stem)]
         return files
 
@@ -362,6 +378,7 @@ class WorkboxMixin(object):
         filepath = files[idx]
         self._backup_file = str(filepath)
         txt = self.__open_file__(str(filepath))
+        self.__tab_widget__().tabBar().update()
 
         return txt, filepath.name, idx + 1, count
 
@@ -369,7 +386,8 @@ class WorkboxMixin(object):
         txt, filename, idx, count = self.get_workbox_version_text(
             group_name, workbox_name, versionType
         )
-        self.__set_text__(txt)
+        self.__set_text__(txt, update_last_saved_text=False)
+        self.__tab_widget__().tabBar().update()
 
         return filename, idx, count
 

@@ -90,6 +90,7 @@ class DocumentEditor(QsciScintilla):
         self._filename = ''
         self.additionalFilenames = []
         self._language = ''
+        self._defaultLanguage = ""
         self._lastSearch = ''
         self._textCodec = None
         self._fileMonitoringActive = False
@@ -535,28 +536,6 @@ class DocumentEditor(QsciScintilla):
         )
         if success:
             self.setPermaHighlight(text.split(' '))
-
-    def enableFileWatching(self, state):
-        """Enables/Disables open file change monitoring. If enabled, A dialog will pop
-        up when ever the open file is changed externally. If file monitoring is
-        disabled in the IDE settings it will be ignored.
-
-        Returns:
-            bool:
-        """
-        # if file monitoring is enabled and we have a file name then set up the file
-        # monitoring
-        window = self.window()
-        self._fileMonitoringActive = False
-        if hasattr(window, 'openFileMonitor'):
-            fm = window.openFileMonitor()
-            if fm:
-                if state:
-                    fm.addPath(self._filename)
-                    self._fileMonitoringActive = True
-                else:
-                    fm.removePath(self._filename)
-        return self._fileMonitoringActive
 
     def disableTitleUpdate(self):
         self.modificationChanged.connect(self.refreshTitle)
@@ -1196,9 +1175,9 @@ class DocumentEditor(QsciScintilla):
             self.delayable_engine.delayables['spell_check'].reset_session(self)
 
     def setLexer(self, lexer):
-        font = self.documentFont
-        if lexer:
-            font = lexer.font(0)
+        font = self.__font__()
+        if lexer and font:
+            lexer.setFont(font)
         # Backup values destroyed when we set the lexer
         marginFont = self.marginsFont()
         folds = self.contractedFolds()
@@ -1230,10 +1209,8 @@ class DocumentEditor(QsciScintilla):
             wordCharacters = self.wordCharacters()
         self.SendScintilla(self.SCI_SETWORDCHARS, wordCharacters.encode('utf8'))
 
-        if lexer:
-            lexer.setFont(font)
-        else:
-            self.setFont(font)
+        if font:
+            self.__set_font__(font)
 
     def setLineMarginWidth(self, width):
         self.setMarginWidth(self.SymbolMargin, width)
@@ -1648,12 +1625,13 @@ class DocumentEditor(QsciScintilla):
         filename = str(filename)
         extension = os.path.splitext(filename)[1]
 
-        # determine if we need to modify the language
-        if not self._filename or extension != os.path.splitext(self._filename)[1]:
+        if filename and extension != os.path.splitext(self._filename)[1]:
             self.setLanguage(lang.byExtension(extension))
+        elif not self._filename:
+            self.setLanguage(self._defaultLanguage)
 
         # update the filename information
-        self._filename = os.path.abspath(filename)
+        self._filename = os.path.abspath(filename) if filename else ""
         self.setModified(False)
 
         try:

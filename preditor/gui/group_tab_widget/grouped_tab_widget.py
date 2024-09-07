@@ -24,8 +24,8 @@ class GroupedTabWidget(OneTabWidget):
         self.uiCornerBTN.released.connect(lambda: self.add_new_editor())
         self.setCornerWidget(self.uiCornerBTN, Qt.TopRightCorner)
 
-    def add_new_editor(self, title="Workbox01"):
-        title = self.get_next_available_tab_name(title)
+    def add_new_editor(self, title=None):
+        title = self.get_next_available_tab_name(name=title)
         editor, title = self.default_tab(title)
         index = self.addTab(editor, title)
         self.setCurrentIndex(index)

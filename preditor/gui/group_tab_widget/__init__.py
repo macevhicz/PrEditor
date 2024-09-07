@@ -67,7 +67,6 @@ class GroupTabWidget(OneTabWidget):
         self.adjustSizePolicy(corner.uiNewTabBTN)
         self.adjustSizePolicy(corner.uiMenuBTN)
         self.adjustSizePolicy(corner.uiCornerMENU)
-
         lyt.addWidget(corner.uiMenuBTN)
 
         self.uiCornerBTN = corner
@@ -78,7 +77,7 @@ class GroupTabWidget(OneTabWidget):
         sp.setVerticalPolicy(QSizePolicy.Policy.Preferred)
         button.setSizePolicy(sp)
 
-    def add_new_tab(self, group, title="Workbox01"):
+    def add_new_tab(self, group, title=None):
         """Adds a new tab to the requested group, creating the group if the group
         doesn't exist.
 
@@ -87,11 +86,14 @@ class GroupTabWidget(OneTabWidget):
                 existing tab, or the name of the group and it will create the group
                 if needed. If None is passed it will add a new tab `Group {last+1}`.
                 If True is passed, then the current group tab is used.
+            title (str): desired base title, otherwise use default
 
         Returns:
             GroupedTabWidget: The tab group for this group.
             WorkboxMixin: The new text editor.
         """
+        if title is None:
+            title = self.default_workbox_title
         parent = None
         if not group:
             group = self.get_next_available_tab_name("Group")
@@ -112,7 +114,7 @@ class GroupTabWidget(OneTabWidget):
             self.addTab(parent, group_title)
 
         # Create the first editor tab and make it visible
-        editor = parent.add_new_editor(title)
+        editor = parent.add_new_editor(title=title)
         self.setCurrentIndex(self.indexOf(parent))
         self.window().focusToWorkbox()
         self.tabBar().setFont(self.window().font())
@@ -215,7 +217,7 @@ class GroupTabWidget(OneTabWidget):
             group_name = group['name']
             tab_widget = None
 
-            group_name = self.get_next_available_tab_name(group_name)
+            group_name = self.get_next_available_tab_name(name=group_name)
 
             for tab in group.get('tabs', []):
                 # Only add this tab if, there is data on disk to load. The user can
@@ -258,6 +260,7 @@ class GroupTabWidget(OneTabWidget):
                 # If there is no longer a current tab, default to the first tab
                 current_tab = 0
             tab_widget.setCurrentIndex(current_tab)
+            tab_widget.tabBar().update()
 
             # Which tab group is the active one? If more than one tab in this
             # group is listed as current, only respect the first.

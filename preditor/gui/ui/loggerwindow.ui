@@ -145,11 +145,11 @@
     <addaction name="uiRunSelectedACT"/>
     <addaction name="uiRunSelectedDontTruncateACT"/>
     <addaction name="uiRunAllACT"/>
+    <addaction name="uiRunFirstWorkboxACT"/>
     <addaction name="separator"/>
     <addaction name="uiClearBeforeRunningACT"/>
     <addaction name="uiClearToLastPromptACT"/>
     <addaction name="uiSelectTextACT"/>
-    <addaction name="uiRunFirstWorkboxACT"/>
    </widget>
    <widget class="QMenu" name="uiFileMENU">
     <property name="title">

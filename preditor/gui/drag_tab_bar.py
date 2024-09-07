@@ -1,8 +1,21 @@
 from __future__ import absolute_import
 
+from pathlib2 import Path
+from functools import partial
+
 from Qt.QtCore import QByteArray, QMimeData, QPoint, QRect, Qt
-from Qt.QtGui import QCursor, QDrag, QPixmap, QRegion
-from Qt.QtWidgets import QInputDialog, QMenu, QSizePolicy, QTabBar
+from Qt.QtGui import QColor, QCursor, QDrag, QPainter, QPalette, QPixmap, QRegion
+from Qt.QtWidgets import (
+    QInputDialog,
+    QFileDialog,
+    QMenu,
+    QSizePolicy,
+    QStyle,
+    QStyleOptionTab,
+    QTabBar,
+)
+
+from preditor import osystem
 
 
 class DragTabBar(QTabBar):
@@ -27,6 +40,67 @@ class DragTabBar(QTabBar):
         self._mime_data = None
         self._context_menu_tab = -1
         self.mime_type = mime_type
+
+        self.color_map = {
+            "normal": "lightgrey",
+            "linked": "turquoise",
+            "dirty": "yellow",
+            "missingLinked": "red",
+        }
+        self.fg_color_map = {
+            "0": "white",
+            "1": "black",
+        }
+
+    def get_color_name(self, index):
+        state = "normal"
+        toolTip = ""
+        if self.parent():
+            widget = self.parent().widget(index)
+            if hasattr(widget, "text"):
+                workbox = widget
+                filename = workbox.__filename__() or workbox._filename_pref
+
+                dirty = workbox.text() != workbox.__last_saved_text__()
+                if dirty:
+                    state = "dirty"
+                    toolTip = "Workbox has unsaved changes"
+
+                elif filename:
+                    if Path(filename).is_file():
+                        state = "linked"
+                        toolTip = "Linked to file on disk"
+                    else:
+                        state = "missingLinked"
+                        toolTip = "Linked file is missing"
+
+        color_name = self.color_map.get(state)
+
+        return color_name, toolTip
+
+    def paintEvent(self, event):
+        style = self.style()
+        painter = QPainter(self)
+        option = QStyleOptionTab()
+        for index in range(self.count()):
+            color_name, toolTip = self.get_color_name(index)
+            self.setTabToolTip(index, toolTip)
+
+            # Get colors
+            color = QColor(color_name)
+            fillColor = color.lighter(175)
+            color = color.darker(250)
+
+            # Pick white or black for text, based on lightness of fillColor
+            fg_idx = int(fillColor.value() >= 128)
+            fg_color_name = self.fg_color_map.get(str(fg_idx))
+            fg_color = QColor(fg_color_name)
+
+            self.initStyleOption(option, index)
+            option.palette.setColor(QPalette.WindowText, fg_color)
+            option.palette.setColor(QPalette.Window, color)
+            option.palette.setColor(QPalette.Button, fillColor)
+            style.drawControl(QStyle.CE_TabBarTab, option, painter)
 
     def mouseMoveEvent(self, event):  # noqa: N802
         if not self._mime_data:
@@ -141,7 +215,7 @@ class DragTabBar(QTabBar):
             msg = 'Rename the {} tab to (new name must be unique):'.format(current)
 
             name, success = QInputDialog.getText(self, 'Rename Tab', msg, text=current)
-            name = self.parent().get_next_available_tab_name(name)
+            name = self.parent().get_next_available_tab_name(name=name)
 
             if success:
                 self.setTabText(self._context_menu_tab, name)
@@ -162,10 +236,49 @@ class DragTabBar(QTabBar):
         act = menu.addAction('Rename')
         act.triggered.connect(self.rename_tab)
 
+        grouped_tab = self.parentWidget()
+        workbox = grouped_tab.widget(self._context_menu_tab)
+
+        # Show File-related actions depending if filename already set
+        if hasattr(workbox, 'filename'):
+            # if not (workbox.filename() and Path(workbox.filename()).is_file()):
+            if not workbox.filename():
+                act = menu.addAction('Link File')
+                act.triggered.connect(partial(self.link_file, workbox))
+            else:
+                act = menu.addAction('Explore File')
+                act.triggered.connect(partial(self.explore_file, workbox))
+
+                act = menu.addAction('Unlink File')
+                act.triggered.connect(partial(self.unlink_file, workbox))
+
         if popup:
             menu.popup(self.mapToGlobal(pos))
 
         return menu
+
+    def link_file(self, workbox):
+        filename, _other = QFileDialog.getOpenFileName()
+        if filename and Path(filename).is_file():
+            workbox.__load__(filename)
+            workbox._filename_pref = filename
+            name = Path(filename).name
+            self.setTabText(self._context_menu_tab, name)
+            self.update()
+
+    def explore_file(self, workbox):
+        path = Path(workbox._filename_pref)
+        if path.exists():
+            osystem.explore(str(path))
+        elif path.parent.exists():
+            osystem.explore(str(path.parent))
+
+    def unlink_file(self, workbox):
+        workbox.updateFilename("")
+        workbox._filename_pref = ""
+
+        name = self.parent().get_next_available_tab_name()
+        self.setTabText(self._context_menu_tab, name)
 
     @classmethod
     def install_tab_widget(cls, tab_widget, mime_type='DragTabBar', menu=True):
