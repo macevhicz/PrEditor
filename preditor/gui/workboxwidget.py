@@ -34,7 +34,9 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         # Used to remove any trailing whitespace when running selected text
         self.regex = re.compile(r'\s+$')
         self.initShortcuts()
-        self.setLanguage('Python')
+
+        self._defaultLanguage = "Python"
+        self.setLanguage(self._defaultLanguage)
         # Default to unix newlines
         self.setEolMode(self.EolUnix)
         if hasattr(self.window(), "setWorkboxFontBasedOnConsole"):
@@ -79,6 +81,28 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         self.setAutoReloadOnChange(state)
         self.enableFileWatching(state)
 
+    def enableFileWatching(self, state):
+        """Enables/Disables open file change monitoring. If enabled, A dialog will pop
+        up when ever the open file is changed externally. If file monitoring is
+        disabled in the IDE settings it will be ignored.
+
+        Returns:
+            bool:
+        """
+        # if file monitoring is enabled and we have a file name then set up the file
+        # monitoring
+        window = self.window()
+        self._fileMonitoringActive = False
+        if hasattr(window, 'openFileMonitor'):
+            openFileMonitor = window.openFileMonitor
+            if openFileMonitor:
+                if state:
+                    openFileMonitor.addPath(self._filename)
+                    self._fileMonitoringActive = True
+                else:
+                    openFileMonitor.removePath(self._filename)
+        return self._fileMonitoringActive
+
     def __filename__(self):
         return self.filename()
 
@@ -107,8 +131,17 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
     def __insert_text__(self, txt):
         self.insert(txt)
 
-    def __load__(self, filename):
+    def __load__(self, filename, update_last_save=True):
         self.load(filename)
+        self.__set_last_saved_text__(self.__text__())
+
+    def __reload_file__(self):
+        # loading the file too quickly misses any changes
+        time.sleep(0.1)
+        font = self.__font__()
+        self.reloadChange()
+        self.__set_last_saved_text__(self.__text__())
+        self.__set_font__(font)
 
     def __margins_font__(self):
         return self.marginsFont()
@@ -131,18 +164,12 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
             # self._marker has not been created yet
             pass
 
-    def __reload_file__(self):
-        # loading the file too quickly misses any changes
-        time.sleep(0.1)
-        font = self.__font__()
-        self.reloadChange()
-        self.__set_font__(font)
-
     def __remove_selected_text__(self):
         self.removeSelectedText()
 
     def __save__(self):
         self.save()
+        self.__set_last_saved_text__(self.__text__())
 
     def __selected_text__(self, start_of_line=False, selectText=False):
         line, s, end, e = self.getSelection()
@@ -192,9 +219,11 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
             self.text(start, end)
         return self.text()
 
-    def __set_text__(self, txt):
+    def __set_text__(self, txt, update_last_saved_text=True):
         """Replace all of the current text with txt."""
         self.setText(txt)
+        if update_last_saved_text:
+            self.__set_last_saved_text__(self.__text__())
 
     @classmethod
     def __write_file__(cls, filename, txt):
@@ -215,14 +244,13 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         truncation, but no modifiers are registered when Enter is pressed (unlike
         when Return is pressed), so this combination is not detectable.
         """
-        if self._software == 'softimage':
-            DocumentEditor.keyPressEvent(self, event)
+        self.__tab_widget__().tabBar().update()
+
+        if self.process_shortcut(event):
+            return
         else:
-            if self.process_shortcut(event):
-                return
-            else:
-                # Send regular keystroke
-                DocumentEditor.keyPressEvent(self, event)
+            # Send regular keystroke
+            DocumentEditor.keyPressEvent(self, event)
 
     def initShortcuts(self):
         """Use this to set up shortcuts when the DocumentEditor"""

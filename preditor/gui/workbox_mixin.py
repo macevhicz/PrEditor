@@ -25,6 +25,19 @@ class WorkboxMixin(object):
         self._backup_file = None
         self.core_name = core_name
 
+        self._last_saved_text = ""
+        self._tab_widget = parent
+
+    def __set_last_saved_text__(self, text):
+        self._last_saved_text = text
+        self.__tab_widget__().tabBar().update()
+
+    def __last_saved_text__(self):
+        return self._last_saved_text
+
+    def __tab_widget__(self):
+        return self._tab_widget
+
     def __auto_complete_enabled__(self):
         raise NotImplementedError("Mixin method not overridden.")
 
@@ -229,7 +242,7 @@ class WorkboxMixin(object):
         """
         raise NotImplementedError("Mixin method not overridden.")
 
-    def __set_text__(self, txt):
+    def __set_text__(self, txt, update_last_saved_text=True):
         """Replace all of the current text with txt. This method should be overridden
         by sub-classes, and call super to mark the widget as having been loaded.
         If text is being set on the widget, it most likely should be marked as
@@ -284,6 +297,7 @@ class WorkboxMixin(object):
             temp_path = prefs.create_stamped_path(self.core_name, group_name, name)
             self._backup_file = str(temp_path)
             self.__write_file__(self._backup_file, self.__text__())
+            self.__set_last_saved_text__(self.__text__())
             ret['backup_file'] = self._backup_file
         return ret
 
