@@ -200,7 +200,6 @@
     <addaction name="uiWordWrapACT"/>
     <addaction name="uiEditorVerticalACT"/>
     <addaction name="uiAutoPromptACT"/>
-    <addaction name="uiLinesInNewWorkboxACT"/>
     <addaction name="uiAutoSaveSettingssACT"/>
     <addaction name="separator"/>
     <addaction name="uiSetFlashWindowIntervalACT"/>

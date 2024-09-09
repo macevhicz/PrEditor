@@ -914,7 +914,6 @@ class LoggerWindow(Window):
                 'consoleFont': self.console().font().toString(),
                 'uiAutoSaveSettingssACT': self.uiAutoSaveSettingssACT.isChecked(),
                 'uiAutoPromptACT': self.uiAutoPromptACT.isChecked(),
-                'uiLinesInNewWorkboxACT': self.uiLinesInNewWorkboxACT.isChecked(),
                 'uiErrorHyperlinksACT': self.uiErrorHyperlinksACT.isChecked(),
                 'uiStatusLbl_limit': self.uiStatusLBL.limit(),
                 'textEditorPath': self.textEditorPath,
@@ -1044,9 +1043,6 @@ class LoggerWindow(Window):
         self.uiAutoSaveSettingssACT.setChecked(pref.get('uiAutoSaveSettingssACT', True))
 
         self.uiAutoPromptACT.setChecked(pref.get('uiAutoPromptACT', False))
-        self.uiLinesInNewWorkboxACT.setChecked(
-            pref.get('uiLinesInNewWorkboxACT', False)
-        )
         self.uiErrorHyperlinksACT.setChecked(pref.get('uiErrorHyperlinksACT', True))
         self.uiStatusLBL.setLimit(pref.get('uiStatusLbl_limit', 5))
 
