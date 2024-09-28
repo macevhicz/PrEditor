@@ -1,8 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import datetime
-import os
-import re
 import textwrap
 
 from pathlib2 import Path
@@ -10,22 +7,12 @@ from pathlib2 import Path
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QStackedWidget
 
-from ..prefs import prefs_path
-
-TIME_FORMAT = "-%Y-%m-%d-%H-%M-%S"
+from .. import prefs
 
 
 class WorkboxMixin(object):
     _warning_text = None
     """When a user is picking this Workbox class, show a warning with this text."""
-
-    class VersionTypes:
-        """Nice names for the workbox version types."""
-
-        First = 0
-        Previous = 1
-        Next = 2
-        Last = 3
 
     def __init__(
         self, parent=None, tempfile=None, filename=None, core_name=None, **kwargs
@@ -33,7 +20,7 @@ class WorkboxMixin(object):
         super(WorkboxMixin, self).__init__(parent=parent, **kwargs)
         self._filename_pref = filename
         self._is_loaded = False
-        self._tempdir = None
+
         self._tempfile = tempfile
         self._backup_file = None
         self.core_name = core_name
@@ -304,92 +291,36 @@ class WorkboxMixin(object):
             self.__save__()
 
         # Save backup file, but only if contents are different than last saved backup
-        data = self.get_workbox_version_text(group_name, name, self.VersionTypes.Last)
+        data = self.get_workbox_version_text(group_name, name, prefs.VersionTypes.Last)
         existing_text, _, _, _ = data
         unchanged = existing_text == self.__text__()
         if not unchanged:
-            temp_path = self.__create_stamped_path__(group_name, name)
+            temp_path = prefs.create_stamped_path(self.core_name, group_name, name)
             self._backup_file = str(temp_path)
             self.__write_file__(self._backup_file, self.__text__())
             self.__set_last_saved_text__(self.__text__())
             ret['backup_file'] = self._backup_file
         return ret
 
-    def __tempdir__(self, create=False):
-        if self._tempdir is None:
-            self._tempdir = prefs_path('workboxes', core_name=self.core_name)
-
-        if create and not os.path.exists(self._tempdir):
-            os.makedirs(self._tempdir)
-
-        return self._tempdir
-
-    def __tempfile__(self, create=False):
-        if self._tempfile:
-            return os.path.join(self.__tempdir__(create=create), self._tempfile)
-
-    def __create_stamped_path__(self, group_name, name):
-        directory = self.__tempdir__(create=True)
-
-        stem = Path(name).stem
-        suffix = Path(name).suffix or ".py"
-
-        now = datetime.datetime.now()
-        time_str = now.strftime(TIME_FORMAT)
-        stem += time_str
-
-        path = (Path(directory) / group_name / stem).with_suffix(suffix)
-        path.parent.mkdir(exist_ok=True)
-        return path
-
-    def __get_file_group__(self, group_name, workbox_name):
-        directory = Path(self.__tempdir__()) / group_name
-
-        workbox_name = Path(workbox_name).stem
-        globStr = "{}*".format(workbox_name)
-        datetime_pattern = r"-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}"
-        pattern = workbox_name + datetime_pattern
-
-        files = list(directory.glob(globStr))
-        files = [file for file in files if re.match(pattern, file.stem)]
-        return files
-
     def get_workbox_version_text(self, group_name, workbox_name, versionType):
-        files = self.__get_file_group__(group_name, workbox_name)
-        if not files:
-            return ("", "", 0, 0)
-        count = len(files)
+        filepath, idx, count = prefs.get_backup_version_info(
+            self.core_name, group_name, workbox_name, versionType, self._backup_file
+        )
+        txt = ""
+        if filepath and Path(filepath).is_file():
+            txt = self.__open_file__(str(filepath))
 
-        idx = len(files) - 1
-        if versionType == self.VersionTypes.First:
-            idx = 0
-        elif versionType == self.VersionTypes.Last:
-            idx = len(files) - 1
-        else:
-            current_name = Path(self._backup_file) if self._backup_file else ""
-            if current_name in files:
-                idx = files.index(current_name)
-                if versionType == self.VersionTypes.Previous:
-                    idx -= 1
-                    idx = max(idx, 0)
-                else:
-                    idx += 1
-                    idx = min(idx, count - 1)
-
-        filepath = files[idx]
-        self._backup_file = str(filepath)
-        txt = self.__open_file__(str(filepath))
-        self.__tab_widget__().tabBar().update()
-
-        return txt, filepath.name, idx + 1, count
+        return txt, filepath, idx, count
 
     def load_workbox_version_text(self, group_name, workbox_name, versionType):
-        txt, filename, idx, count = self.get_workbox_version_text(
-            group_name, workbox_name, versionType
-        )
+        data = self.get_workbox_version_text(group_name, workbox_name, versionType)
+        txt, filepath, idx, count = data
+        self._backup_file = str(filepath)
+
         self.__set_text__(txt, update_last_saved_text=False)
         self.__tab_widget__().tabBar().update()
 
+        filename = Path(filepath).name
         return filename, idx, count
 
     @classmethod
@@ -414,7 +345,7 @@ class WorkboxMixin(object):
             txt = self.__open_file__(self._backup_file)
             self.__set_text__(txt)
         elif self._tempfile:
-            txt = self.__open_file__(self.__tempfile__())
+            txt = self.__open_file__(self.temp_file(self._tempfile, self.core_name))
             self.__set_text__(txt)
 
     def process_shortcut(self, event, run=True):

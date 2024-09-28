@@ -94,12 +94,12 @@ class GroupTabWidget(OneTabWidget):
         """
         if title is None:
             title = self.default_workbox_title
-        parent = None
         if not group:
             group = self.get_next_available_tab_name("Group")
         elif group is True:
             group = self.currentIndex()
 
+        parent = None
         if isinstance(group, int):
             group_title = self.tabText(group)
             parent = self.widget(group)
