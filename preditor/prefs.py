@@ -99,8 +99,8 @@ def prefs_path(filename=None, core_name=None):
     return ret
 
 
-def temp_dir(core_name=None, create=False):
-    temp_dir = prefs_path('workboxes', core_name=core_name)
+def temp_dir(sub_dir='workboxes', core_name=None, create=False):
+    temp_dir = prefs_path(sub_dir, core_name=core_name)
     if create and not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
@@ -112,8 +112,8 @@ def temp_file(tempfile, create=False):
         return os.path.join(temp_dir(create=create), tempfile)
 
 
-def create_stamped_path(core_name, group_name, name):
-    directory = temp_dir(core_name=core_name, create=True)
+def create_stamped_path(core_name, group_name, name, sub_dir='workboxes'):
+    directory = temp_dir(sub_dir=sub_dir, core_name=core_name, create=True)
 
     stem = Path(name).stem
     suffix = Path(name).suffix or ".py"
