@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import sys
 import warnings
 from builtins import bytes
@@ -857,8 +858,13 @@ class LoggerWindow(Window):
         if self._stds:
             self._stds[0].clear(stamp=True)
 
-    def prune_backup_files__(self):
-        directory = prefs.prefs_path('workboxes', core_name=self.name)
+    def prune_backup_files__(self, sub_dir='workboxes'):
+        """Prune the backup files to self.max_num_workbox_backups, per workbox
+
+        Args:
+            sub_dir (str, optional): The subdir to operate on.
+        """
+        directory = prefs.prefs_path(sub_dir, core_name=self.name)
         files = Path(directory).rglob("*.*")
         pattern = r"(?P<name>\w*)-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}.py"
 
@@ -1064,8 +1070,35 @@ class LoggerWindow(Window):
         self.setStatusText("Prefs saved")
         self.autoHideStatusText()
 
+    def auto_backup_prefs(self, filename, onlyFirst=False):
+        """Auto backup prefs for logger window itself. 
+
+        TODO: Implement method to easily scroll thru backups. Maybe difficult, due the
+        myriad combinations of workboxes and workboxes version. Maybe ignore workboxes,
+        and just to the dialog prefs and/or existing workbox names
+
+        Args:
+            filename (str): The filename to backup
+            onlyFirst (bool, optional): Flag to create initial backup, and not
+                subsequent ones. Used when dialog launched for the first time.
+
+        Returns:
+            TYPE: Description
+        """
+        path = Path(filename)
+        name = path.name
+        stem = path.stem
+        bak_path = prefs.create_stamped_path(self.name, "", name, sub_dir='prefs_bak')
+
+        existing = list(bak_path.parent.glob("{}*.json".format(stem)))
+        if onlyFirst and len(existing):
+            return
+
+        shutil.copy(path, bak_path)
+
     def load_prefs(self):
         filename = prefs.prefs_path('preditor_pref.json', core_name=self.name)
+        self.auto_backup_prefs(filename, onlyFirst=True)
         if os.path.exists(filename):
             with open(filename) as fp:
                 return json.load(fp)
@@ -1079,6 +1112,9 @@ class LoggerWindow(Window):
             os.makedirs(dirname)
         with open(filename, 'w') as fp:
             json.dump(pref, fp, indent=4)
+        self.auto_backup_prefs(filename)
+        self.prune_backup_files__(sub_dir='workboxes')
+        self.prune_backup_files__(sub_dir='prefs_bak')
 
     def maybeDisplayDialog(self, dialog):
         """If user hasn't previously opted to not show this particular dialog again,
