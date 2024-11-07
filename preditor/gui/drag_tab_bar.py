@@ -60,7 +60,7 @@ class DragTabBar(QTabBar):
             widget = self.parent().widget(index)
             if hasattr(widget, "text"):
                 workbox = widget
-                filename = workbox.__filename__() or workbox._filename_pref
+                filename = workbox.__filename__()
 
                 dirty = workbox.text() != workbox.__last_saved_text__()
                 if dirty:
@@ -246,6 +246,9 @@ class DragTabBar(QTabBar):
             if not workbox.filename():
                 act = menu.addAction('Link File')
                 act.triggered.connect(partial(self.link_file, workbox))
+
+                act = menu.addAction('Save and Link File')
+                act.triggered.connect(partial(self.save_and_link_file, workbox))
             else:
                 act = menu.addAction('Explore File')
                 act.triggered.connect(partial(self.explore_file, workbox))

@@ -339,7 +339,7 @@ class WorkboxMixin(object):
             return
 
         self._is_loaded = True
-        if self._filename_pref:
+        if self._filename_pref and Path(self._filename_pref).is_file():
             self.__load__(self._filename_pref)
         elif self._backup_file:
             txt = self.__open_file__(self._backup_file)
