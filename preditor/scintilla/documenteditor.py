@@ -1097,7 +1097,6 @@ class DocumentEditor(QsciScintilla):
             pass
 
     def save(self):
-        logger.debug(' Saved Called'.center(60, '-'))
         ret = self.saveAs(self.filename())
         # If the user has provided additionalFilenames to save, process each of them
         # without switching the current filename.
@@ -1106,7 +1105,6 @@ class DocumentEditor(QsciScintilla):
         return ret
 
     def saveAs(self, filename='', setFilename=True):
-        logger.debug(' Save As Called '.center(60, '-'))
         newFile = False
         if not filename:
             newFile = True

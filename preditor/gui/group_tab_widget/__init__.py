@@ -228,12 +228,9 @@ class GroupTabWidget(OneTabWidget):
                 # preferences save.
                 # By not restoring tabs for deleted files we prevent accidentally
                 # restoring a tab with empty text.
-                filename = tab.get('filename')
                 temp_name = tab.get('tempfile')
                 backup_file = tab.get('backup_file')
 
-                if filename and not Path(filename).is_file():
-                    continue
                 if backup_file and not Path(backup_file).is_file():
                     continue
                 if temp_name and not (Path(workbox_dir) / temp_name).is_file():
