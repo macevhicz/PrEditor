@@ -74,9 +74,6 @@ class DocumentEditor(QsciScintilla):
     fontsChanged = Signal(
         QFont, QFont
     )  # emits the font size change (font size, margin font size)
-    documentSaved = Signal(
-        QsciScintilla, object
-    )  # (DocumentEditor, filename) emitted when ever the document is saved.
 
     def __init__(self, parent, filename='', lineno=0, delayable_engine='default'):
         super(DocumentEditor, self).__init__(parent)
@@ -1135,8 +1132,6 @@ class DocumentEditor(QsciScintilla):
             else:
                 self.write(f)
             f.close()
-            # notify that the document was saved
-            self.documentSaved.emit(self, filename)
 
             # update the file
             if setFilename:
