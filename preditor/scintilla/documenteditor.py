@@ -1102,9 +1102,11 @@ class DocumentEditor(QsciScintilla):
         return ret
 
     def saveAs(self, filename='', setFilename=True):
-        newFile = False
+        logger.debug(' Save As Called '.center(60, '-'))
+
+        # Disable file watching so workbox doesn't reload and scroll to the top.
+        self.enableFileWatching(False)
         if not filename:
-            newFile = True
             filename = self.filename()
             filename, extFilter = QtCompat.QFileDialog.getSaveFileName(
                 self.window(), 'Save File as...', filename
@@ -1136,8 +1138,8 @@ class DocumentEditor(QsciScintilla):
             # update the file
             if setFilename:
                 self.updateFilename(filename)
-                if newFile:
-                    self.enableFileWatching(True)
+
+            self.enableFileWatching(True)
             return True
         return False
 
