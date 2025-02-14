@@ -379,7 +379,22 @@ class ConsolePrEdit(QTextEdit):
         """returns the completer instance that is associated with this editor"""
         return self._completer
 
-    def executeString(self, commandText, filename='<ConsolePrEdit>', extraPrint=True):
+    def getWorkboxLine(self, name, lineNum):
+        workbox = self.window().workbox_for_name(name)
+        if not workbox:
+            return None
+        if lineNum > workbox.lines():
+            return None
+        txt = workbox.text(lineNum) + "\n"
+        return txt
+
+    def executeString(
+        self, commandText, consoleLine=None, filename='<ConsolePrEdit>', extraPrint=True
+    ):
+        # These vars helps with faking code lines in tracebacks for stdin input, which
+        # workboxes are, and py3 doesn't include in the traceback
+        self.consoleLine = consoleLine or ""
+
         if self.clearExecutionTime is not None:
             self.clearExecutionTime()
         cursor = self.textCursor()
@@ -434,6 +449,10 @@ class ConsolePrEdit(QTextEdit):
 
     def executeCommand(self):
         """executes the current line of code"""
+
+        # Not using workbox, so clear this
+        self.consoleLine = ""
+
         # grab the command from the line
         block = self.textCursor().block().text()
         p = '{prompt}(.*)'.format(prompt=re.escape(self.prompt()))
@@ -456,7 +475,9 @@ class ConsolePrEdit(QTextEdit):
                 self._prevCommands = self._prevCommands[-1 * self._prevCommandsMax :]
 
                 # evaluate the command
-                cmdresult, wasEval = self.executeString(commandText)
+                cmdresult, wasEval = self.executeString(
+                    commandText, consoleLine=commandText
+                )
 
                 # print the resulting commands
                 if cmdresult is not None:
@@ -794,6 +815,14 @@ class ConsolePrEdit(QTextEdit):
 
         return ret
 
+    @staticmethod
+    def getIndentForCodeTracebackLine(msg):
+        indent = ""
+        match = re.match(r"^ *", msg)
+        if match:
+            indent = match.group() * 2
+        return indent
+
     def write(self, msg, error=False):
         """write the message to the logger"""
         # Convert the stream_manager's stream to the boolean value this function expects
@@ -848,6 +877,31 @@ class ConsolePrEdit(QTextEdit):
             filename = info.get("filename", "") if info else ""
             isConsolePrEdit = '<ConsolePrEdit>' in filename
 
+            # For workboxes, use this regex pattern, so we can extract workboxName and
+            # lineNum
+            pattern = r'File "<Workbox(?:Selection)?>:(?P<workboxName>.*)", '
+            pattern += r'line (?P<lineNum>\d{1,6}), in'
+
+            match = re.search(pattern, msg)
+            isWorkbox = bool(match)
+
+            # Starting in Python 3, tracebacks don't include the code executed for
+            # stdin, so workbox code won't appear. This attempts to include it.
+            if sys.version_info.major >= 3:
+                if isWorkbox:
+                    workboxName = match.groupdict().get("workboxName")
+                    lineNum = int(match.groupdict().get("lineNum")) - 1
+
+                    workboxLine = self.getWorkboxLine(workboxName, lineNum)
+                    if workboxLine:
+                        indent = self.getIndentForCodeTracebackLine(msg)
+                        msg = "{}{}{}".format(msg, indent, workboxLine)
+
+                elif isConsolePrEdit:
+                    consoleLine = self.consoleLine
+                    indent = self.getIndentForCodeTracebackLine(msg)
+                    msg = "{}{}{}\n".format(msg, indent, consoleLine)
+
             if self.addSepNewline:
                 if sepPreditorTrace:
                     msg += "\n"
@@ -862,7 +916,6 @@ class ConsolePrEdit(QTextEdit):
                 fileEnd = info.get("fileEnd")
                 lineNum = info.get("lineNum")
 
-                isWorkbox = '<WorkboxSelection>' in filename or '<Workbox>' in filename
                 if isWorkbox:
                     split = filename.split('/')
                     workboxName = split[-1]
