@@ -98,7 +98,7 @@
      <x>0</x>
      <y>0</y>
      <width>794</width>
-     <height>31</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="uiDebugMENU">
@@ -207,6 +207,7 @@
     <addaction name="uiErrorHyperlinksACT"/>
     <addaction name="uiSetPreferredTextEditorPathACT"/>
     <addaction name="uiSetWorkboxEditorACT"/>
+    <addaction name="uiSeparateTracebackACT"/>
     <addaction name="separator"/>
     <addaction name="uiSetMaxWorkboxBackupsACT"/>
    </widget>
@@ -1125,6 +1126,14 @@ at the indicated line in the specified text editor.
    </property>
    <property name="shortcut">
     <string>Alt+1</string>
+   </property>
+  </action>
+  <action name="uiSeparateTracebackACT">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Visually Separate PrEditor Traceback</string>
    </property>
   </action>
  </widget>

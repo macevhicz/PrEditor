@@ -61,6 +61,8 @@ class ConsolePrEdit(QTextEdit):
 
         self._firstShow = True
 
+        self.addSepNewline = False
+
         # When executing code, that takes longer than this seconds, flash the window
         self.flash_time = 1.0
         self.flash_window = None
@@ -845,6 +847,10 @@ class ConsolePrEdit(QTextEdit):
                 hasattr(window, 'uiErrorHyperlinksACT')
                 and window.uiErrorHyperlinksACT.isChecked()
             )
+            sepPreditorTrace = (
+                hasattr(window, 'uiSeparateTracebackACT')
+                and window.uiSeparateTracebackACT.isChecked()
+            )
             self.moveCursor(QTextCursor.End)
 
             charFormat = QTextCharFormat()
@@ -883,6 +889,15 @@ class ConsolePrEdit(QTextEdit):
             filename = info.get("filename", "") if info else ""
             isConsolePrEdit = '<ConsolePrEdit>' in filename
 
+            if self.addSepNewline:
+                if sepPreditorTrace:
+                    msg += "\n"
+                self.addSepNewline = False
+
+            preditorCalls = ("cmdresult = e", "exec(compiled,")
+            if msg.strip().startswith(preditorCalls):
+                self.addSepNewline = True
+
             if info and doHyperlink and not isConsolePrEdit:
                 fileStart = info.get("fileStart")
                 fileEnd = info.get("fileEnd")
@@ -918,6 +933,8 @@ class ConsolePrEdit(QTextEdit):
                 cursor.insertText(msg[fileEnd:], fmt)
             else:
                 # Non-hyperlink output
+                if msg.startswith("Traceback"):
+                    msg = msg.rstrip()
                 self.insertPlainText(msg)
 
         # if a outputPipe was provided, write the message to that pipe
