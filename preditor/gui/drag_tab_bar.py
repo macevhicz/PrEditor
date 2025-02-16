@@ -6,6 +6,7 @@ from functools import partial
 from Qt.QtCore import QByteArray, QMimeData, QPoint, QRect, Qt
 from Qt.QtGui import QColor, QCursor, QDrag, QPainter, QPalette, QPixmap, QRegion
 from Qt.QtWidgets import (
+    QApplication,
     QInputDialog,
     QFileDialog,
     QMenu,
@@ -252,6 +253,12 @@ class DragTabBar(QTabBar):
                 act = menu.addAction('Unlink File')
                 act.triggered.connect(partial(self.unlink_file, workbox))
 
+                act = menu.addAction('Save As')
+                act.triggered.connect(partial(self.save_and_link_file, workbox))
+
+            act = menu.addAction('Copy Workbox Name')
+            act.triggered.connect(partial(self.copy_workbox_name, workbox))
+
         if popup:
             menu.popup(self.mapToGlobal(pos))
 
@@ -266,6 +273,14 @@ class DragTabBar(QTabBar):
             self.setTabText(self._context_menu_tab, name)
             self.update()
 
+    def save_and_link_file(self, workbox):
+        workbox.saveAs()
+        filename = workbox.filename()
+        workbox._filename_pref = filename
+        name = Path(filename).name
+        self.setTabText(self._context_menu_tab, name)
+        self.update()
+
     def explore_file(self, workbox):
         path = Path(workbox._filename_pref)
         if path.exists():
@@ -279,6 +294,10 @@ class DragTabBar(QTabBar):
 
         name = self.parent().get_next_available_tab_name()
         self.setTabText(self._context_menu_tab, name)
+
+    def copy_workbox_name(self, workbox):
+        name = self.window().name_for_workbox(workbox)
+        QApplication.clipboard().setText(name)
 
     @classmethod
     def install_tab_widget(cls, tab_widget, mime_type='DragTabBar', menu=True):
