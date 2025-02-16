@@ -376,19 +376,6 @@ class LoggerWindow(Window):
         return self.uiWorkboxTAB.current_groups_widget()
 
     @classmethod
-    def name_for_workbox(cls, workbox):
-        """Returns the name for a given workbox.
-        The name is the group tab text and the workbox tab text joined by a `/`"""
-        ret = []
-        logger = cls.instance()
-        index = logger.uiWorkboxTAB.currentIndex()
-        ret.append(logger.uiWorkboxTAB.tabText(index))
-        group_widget = logger.uiWorkboxTAB.currentWidget()
-        index = group_widget.currentIndex()
-        ret.append(group_widget.tabText(index))
-        return "/".join(ret)
-
-    @classmethod
     def workbox_for_name(cls, name, show=False, visible=False):
         """Used to find a workbox for a given name. It accepts a string matching
         the "{group}/{workbox}" format, or if True, the current workbox.
