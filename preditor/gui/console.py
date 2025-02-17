@@ -88,7 +88,7 @@ class ConsolePrEdit(QTextEdit):
         # to the console and free up the memory consumed by previous writes as we
         # assume this is likely to be the only callback added to the manager.
         self.stream_manager.add_callback(
-            self.write, replay=True, disable_writes=True, clear=True
+            self.pre_write, replay=True, disable_writes=True, clear=True
         )
         # Store the current outputs
         self.stdout = sys.stdout
@@ -852,24 +852,22 @@ class ConsolePrEdit(QTextEdit):
         """Determine if txt is a File-info line from a traceback, and if so, return info
         dict.
         """
-        lineMarker = '", line '
-        ret = None
 
-        filenameEnd = txt.find(lineMarker)
-        if txt[:8] == '  File "' and filenameEnd >= 0:
-            filename = txt[8:filenameEnd]
-            lineNumStart = filenameEnd + len(lineMarker)
-            lineNumEnd = txt.find(',', lineNumStart)
-            if lineNumEnd == -1:
-                lineNumEnd = len(txt)
-            lineNum = txt[lineNumStart:lineNumEnd]
+        ret = None
+        pattern = r'File "(?P<filename>.*)", line (?P<lineNum>\d{1,10}), in'
+        match = re.search(pattern, txt)
+        if match:
+            filename = match.groupdict().get('filename')
+            lineNum = match.groupdict().get('lineNum')
+            fileStart = txt.find(filename)
+            fileEnd = fileStart + len(filename)
+
             ret = {
                 'filename': filename,
-                'fileStart': 8,
-                'fileEnd': filenameEnd,
+                'fileStart': fileStart,
+                'fileEnd': fileEnd,
                 'lineNum': lineNum,
             }
-
         return ret
 
     @staticmethod
@@ -879,6 +877,24 @@ class ConsolePrEdit(QTextEdit):
         if match:
             indent = match.group() * 2
         return indent
+
+    def pre_write(self, msg, error=False):
+        """In order to make a stack-trace provide clickable hyperlinks, it must be sent
+        to self.write line-by-line, like a actual exception traceback is. So, we check
+        if msg has the stack marker str, if so, send it line by line, otherwise, just
+        pass msg on to self.write.
+        """
+        stack_marker = "Stack (most Xrecent call last)"
+        index = msg.find(stack_marker)
+        has_stack_marker = index > -1
+
+        if has_stack_marker:
+            lines = msg.split("\n")
+            for line in lines:
+                line = "{}\n".format(line)
+                self.write(line, error=error)
+        else:
+            self.write(msg, error=error)
 
     def write(self, msg, error=False):
         """write the message to the logger"""
