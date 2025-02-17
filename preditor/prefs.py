@@ -11,15 +11,6 @@ import sys
 from pathlib2 import Path
 import datetime
 
-import logging
-
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-format_str = '%(levelname)s %(module)s.%(funcName)s line:%(lineno)d - %(message)s'
-formatter = logging.Formatter(format_str)
-for handler in logging.root.handlers:
-    handler.setFormatter(formatter)
 
 # cache of all the preferences
 _cache = {}

@@ -50,6 +50,12 @@ from .level_buttons import LoggingLevelButton
 from .set_text_editor_path_dialog import SetTextEditorPathDialog
 from .status_label import StatusLabel
 
+import logging
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+DEFAULT_LOGGER_FORMAT_STR = ('%(levelname)s %(module)s.%(funcName)s'
+                             ' line:%(lineno)d - %(message)s')
+
 
 class WorkboxPages:
     """Nice names for the uiWorkboxSTACK indexes."""
@@ -333,6 +339,8 @@ class LoggerWindow(Window):
         )
 
         self.setup_run_workbox()
+
+        self.setLoggingFormat()
 
         if not standalone:
             # This action only is valid when running in standalone mode
@@ -1595,7 +1603,16 @@ class LoggerWindow(Window):
 
         return LoggerWindow._instance
 
-    def installLogToFile(self):
+    def setLoggingFormat(self, format_str=None):
+        format_str = format_str if format_str else DEFAULT_LOGGER_FORMAT_STR
+        formatter = logging.Formatter(format_str)
+        for handler in logging.root.handlers:
+            handler.setFormatter(formatter)
+
+    def installLogOnlyToFile(self):
+        self.installLogToFile(useOldStd=False)
+
+    def installLogToFile(self, useOldStd=True):
         """All stdout/stderr output is also appended to this file.
 
         This uses preditor.debug.logToFile(path, useOldStd=True).
@@ -1607,9 +1624,12 @@ class LoggerWindow(Window):
             )
             if not path:
                 return
+
             path = os.path.normpath(path)
             print('Output logged to: "{}"'.format(path))
-            debug.logToFile(path, useOldStd=True)
+
+            debug.logToFile(path, useOldStd=useOldStd)
+
             # Store the std's so we can clear them later
             self._stds = (sys.stdout, sys.stderr)
             self.uiLogToFileACT.setText('Output Logged to File')
