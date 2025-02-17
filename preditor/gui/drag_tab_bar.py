@@ -58,16 +58,14 @@ class DragTabBar(QTabBar):
         toolTip = ""
         if self.parent():
             widget = self.parent().widget(index)
+
+            if widget.__is_dirty__():
+                state = "dirty"
+                toolTip = "Workbox has unsaved changes, or it's name has changed."
+
             if hasattr(widget, "text"):
-                workbox = widget
-                filename = workbox.__filename__()
-
-                dirty = workbox.text() != workbox.__last_saved_text__()
-                if dirty:
-                    state = "dirty"
-                    toolTip = "Workbox has unsaved changes"
-
-                elif filename:
+                filename = widget.__filename__()
+                if filename:
                     if Path(filename).is_file():
                         state = "linked"
                         toolTip = "Linked to file on disk"
@@ -83,6 +81,10 @@ class DragTabBar(QTabBar):
         style = self.style()
         painter = QPainter(self)
         option = QStyleOptionTab()
+
+        # Update the the parent GroupTabWidget
+        self.parent().parent().parent().update()
+
         for index in range(self.count()):
             color_name, toolTip = self.get_color_name(index)
             self.setTabToolTip(index, toolTip)
@@ -218,7 +220,7 @@ class DragTabBar(QTabBar):
             name, success = QInputDialog.getText(self, 'Rename Tab', msg, text=current)
             name = self.parent().get_next_available_tab_name(name=name)
 
-            if success:
+            if success and name != current:
                 self.setTabText(self._context_menu_tab, name)
 
     def tab_menu(self, pos, popup=True):
@@ -234,16 +236,17 @@ class DragTabBar(QTabBar):
             return
         menu = QMenu(self)
         menu.setFont(self.window().font())
-        act = menu.addAction('Rename')
-        act.triggered.connect(self.rename_tab)
 
         grouped_tab = self.parentWidget()
         workbox = grouped_tab.widget(self._context_menu_tab)
 
-        # Show File-related actions depending if filename already set
+        # Show File-related actions depending if filename already set. Don't include
+        # Rename if the workbox is linked to a file.
         if hasattr(workbox, 'filename'):
-            # if not (workbox.filename() and Path(workbox.filename()).is_file()):
             if not workbox.filename():
+                act = menu.addAction('Rename')
+                act.triggered.connect(self.rename_tab)
+
                 act = menu.addAction('Link File')
                 act.triggered.connect(partial(self.link_file, workbox))
 
@@ -258,9 +261,12 @@ class DragTabBar(QTabBar):
 
                 act = menu.addAction('Save As')
                 act.triggered.connect(partial(self.save_and_link_file, workbox))
+        else:
+            act = menu.addAction('Rename')
+            act.triggered.connect(self.rename_tab)
 
-            act = menu.addAction('Copy Workbox Name')
-            act.triggered.connect(partial(self.copy_workbox_name, workbox))
+        act = menu.addAction('Copy Workbox Name')
+        act.triggered.connect(partial(self.copy_workbox_name, workbox))
 
         if popup:
             menu.popup(self.mapToGlobal(pos))
