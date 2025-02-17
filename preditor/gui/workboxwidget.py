@@ -4,6 +4,8 @@ import io
 import re
 import time
 
+from pathlib2 import Path
+
 from Qt.QtCore import Qt
 from Qt.QtGui import QIcon
 from Qt.QtWidgets import QAction
@@ -135,12 +137,21 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         self.load(filename)
         self.__set_last_saved_text__(self.__text__())
 
+        workbox_name = self.__workbox_name__()
+        group_name = workbox_name.split("/")[0]
+
+        new_name = Path(filename).name
+
+        new_workbox_name = "{}/{}".format(group_name, new_name)
+        self.__set_last_workbox_name__(new_workbox_name)
+
     def __reload_file__(self):
         # loading the file too quickly misses any changes
         time.sleep(0.1)
         font = self.__font__()
         self.reloadChange()
         self.__set_last_saved_text__(self.__text__())
+        self.__set_last_workbox_name__(self.__workbox_name__())
         self.__set_font__(font)
 
     def __margins_font__(self):
@@ -170,6 +181,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
     def __save__(self):
         self.save()
         self.__set_last_saved_text__(self.__text__())
+        self.__set_last_workbox_name__(self.__workbox_name__())
 
     def __selected_text__(self, start_of_line=False, selectText=False):
         line, s, end, e = self.getSelection()
