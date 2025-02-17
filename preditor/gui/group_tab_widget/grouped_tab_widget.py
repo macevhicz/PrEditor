@@ -41,11 +41,16 @@ class GroupedTabWidget(OneTabWidget):
             msg = "You have to leave at least one tab open."
             QMessageBox.critical(self, 'Tab can not be closed.', msg, QMessageBox.Ok)
             return
+
+        name = self.tabText(index)
+        msg = ("Would you like to donate the {} tab's contents to the /dev/null fund "
+               "for wayward code?")
+        msg = msg.format(name)
+
         ret = QMessageBox.question(
             self,
             'Donate to the cause?',
-            "Would you like to donate this tabs contents to the /dev/null fund "
-            "for wayward code?",
+            msg,
             QMessageBox.Yes | QMessageBox.Cancel,
         )
         if ret == QMessageBox.Yes:
