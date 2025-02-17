@@ -26,6 +26,7 @@ class WorkboxMixin(object):
         self.core_name = core_name
 
         self._last_saved_text = ""
+        self._last_workbox_name_ = self.__workbox_name__(self)
         self._tab_widget = parent
 
     def __set_last_saved_text__(self, text):
@@ -34,6 +35,14 @@ class WorkboxMixin(object):
 
     def __last_saved_text__(self):
         return self._last_saved_text
+
+    def __set_last_workbox_name__(self, name=None):
+        if name is None:
+            name = self.__workbox_name__()
+        self._last_workbox_name_ = name
+
+    def __last_workbox_name__(self):
+        return self._last_workbox_name_
 
     def __tab_widget__(self):
         return self._tab_widget
@@ -291,6 +300,13 @@ class WorkboxMixin(object):
         """
         self._is_loaded = True
 
+    def __is_dirty__(self):
+        is_dirty = (
+            self.__text__() != self.__last_saved_text__()
+            or self.__workbox_name__(workbox=self) != self.__last_workbox_name__()
+        )
+        return is_dirty
+
     def truncate_middle(self, s, n, sep=' ... '):
         """Truncates the provided text to a fixed length, putting the sep in the middle.
         https://www.xormedia.com/string-truncate-middle-with-ellipsis/
@@ -334,6 +350,10 @@ class WorkboxMixin(object):
         data = self.get_workbox_version_text(group_name, name, prefs.VersionTypes.Last)
         existing_text, _, _, _ = data
         unchanged = existing_text == self.__text__()
+
+        name = "{}/{}".format(group_name, name)
+        self.__set_last_workbox_name__(name)
+
         if not unchanged:
             temp_path = prefs.create_stamped_path(self.core_name, group_name, name)
             self._backup_file = str(temp_path)

@@ -93,9 +93,9 @@ class GroupTabWidget(OneTabWidget):
             WorkboxMixin: The new text editor.
         """
         if title is None:
-            title = self.default_workbox_title
+            title = self.get_next_available_tab_name()
         if not group:
-            group = self.get_next_available_tab_name("Group")
+            group = self.get_next_available_tab_name("Group01")
         elif group is True:
             group = self.currentIndex()
 
@@ -113,8 +113,11 @@ class GroupTabWidget(OneTabWidget):
             parent, group_title = self.default_tab(group_title)
             self.addTab(parent, group_title)
 
-        # Create the first editor tab and make it visible
+        # Create the first editor tab and make it visible. Update last_workbox_name
         editor = parent.add_new_editor(title=title)
+        new_workbox_name = "{}/{}".format(group_title, title)
+        editor.__set_last_workbox_name__(new_workbox_name)
+
         self.setCurrentIndex(self.indexOf(parent))
         self.window().focusToWorkbox()
         self.tabBar().setFont(self.window().font())
@@ -241,6 +244,7 @@ class GroupTabWidget(OneTabWidget):
                 name = tab['name']
                 tab_widget, editor = self.add_new_tab(group_name, name)
                 editor.__restore_prefs__(tab)
+                editor.__set_last_workbox_name__(editor.__workbox_name__())
 
                 # If more than one tab in this group is listed as current, only
                 # respect the first
