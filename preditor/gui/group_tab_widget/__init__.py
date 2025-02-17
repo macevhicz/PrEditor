@@ -147,12 +147,12 @@ class GroupTabWidget(OneTabWidget):
             self,
             'Close all editors under this tab?',
             'Are you sure you want to close all tabs under the "{}" tab?'.format(
-                self.tabText(self.currentIndex())
+                self.tabText(index)
             ),
             QMessageBox.Yes | QMessageBox.Cancel,
         )
         if ret == QMessageBox.Yes:
-            super(GroupTabWidget, self).close_tab(self.currentIndex())
+            super(GroupTabWidget, self).close_tab(index)
 
     def current_groups_widget(self):
         """Returns the current widget of the currently selected group or None."""
