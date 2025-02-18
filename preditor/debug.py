@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import datetime
 import inspect
 import logging
+import string
 import sys
 import traceback
 
@@ -35,6 +36,7 @@ class FileLogger:
 
     def write(self, msg):
         f = open(self._logfile, 'a')
+        msg = "".join([char for char in msg if char in string.printable])
         f.write(msg)
         f.close()
         if self._print:
