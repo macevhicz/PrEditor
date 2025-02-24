@@ -26,6 +26,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         tempfile=None,
         delayable_engine='default',
         core_name=None,
+        **kwargs,
     ):
         self.__set_console__(console)
         self._searchFlags = 0
@@ -43,6 +44,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
             self._workbox_id = WorkboxMixin.__create_workbox_id__(self.core_name)
 
         self._filename_pref = filename
+        self._filename = filename
         self._backup_file = backup_file
         self._tempfile = tempfile
 
