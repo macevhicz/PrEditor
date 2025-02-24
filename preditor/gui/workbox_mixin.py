@@ -199,14 +199,23 @@ class WorkboxMixin(object):
                         if cur_workbox_widget == workbox:
                             workbox_name = cur_group_widget.tabText(workbox_idx)
         else:
-            # Get group name and it's tabText
-            index = workboxTAB.currentIndex()
-            group_name = workboxTAB.tabText(index)
-            group_widget = workboxTAB.currentWidget()
 
-            # Get the workboxes tabText
-            index = group_widget.currentIndex()
-            workbox_name = group_widget.tabText(index)
+            grouped = self.__tab_widget__()
+            groupedTabBar = grouped.tabBar()
+
+            idx = -1
+            for idx in range(grouped.count()):
+                if grouped.widget(idx) == self:
+                    break
+            workbox_name = groupedTabBar.tabText(idx)
+
+            group = grouped.parent().parent()
+            groupTabBar = group.tabBar()
+            idx = -1
+            for idx in range(group.count()):
+                if group.widget(idx) == grouped:
+                    break
+            group_name = groupTabBar.tabText(idx)
 
         # If both found, construct workbox name
         if group_name and workbox_name:
