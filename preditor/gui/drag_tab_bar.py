@@ -231,7 +231,8 @@ class DragTabBar(QTabBar):
         This method sets the tab index the user right clicked on in the variable
         `_context_menu_tab`. This can be used in the triggered QAction methods."""
 
-        self._context_menu_tab = self.tabAt(pos)
+        index = self.tabAt(pos)
+        self._context_menu_tab = index
         if self._context_menu_tab == -1:
             return
         menu = QMenu(self)
@@ -266,7 +267,7 @@ class DragTabBar(QTabBar):
             act.triggered.connect(self.rename_tab)
 
         act = menu.addAction('Copy Workbox Name')
-        act.triggered.connect(partial(self.copy_workbox_name, workbox))
+        act.triggered.connect(partial(self.copy_workbox_name, workbox, index))
 
         if popup:
             menu.popup(self.mapToGlobal(pos))
@@ -304,11 +305,13 @@ class DragTabBar(QTabBar):
         name = self.parent().get_next_available_tab_name()
         self.setTabText(self._context_menu_tab, name)
 
-    def copy_workbox_name(self, workbox):
+    def copy_workbox_name(self, workbox, index):
         try:
             name = workbox.__workbox_name__()
         except AttributeError:
-            workbox = self.parent().currentWidget().currentWidget()
+            group = self.parent().widget(index)
+            curIndex = group.currentIndex()
+            workbox = group.widget(curIndex)
             name = workbox.__workbox_name__()
         QApplication.clipboard().setText(name)
 
