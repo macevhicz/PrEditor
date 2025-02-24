@@ -200,9 +200,9 @@ class WorkboxMixin(object):
                             workbox_name = cur_group_widget.tabText(workbox_idx)
         else:
             # Get group name and it's tabText
-            index = workboxTAB.currentIndex()
-            group_name = workboxTAB.tabText(index)
-            group_widget = workboxTAB.currentWidget()
+            groupIndex = workboxTAB.currentIndex()
+            group_name = workboxTAB.tabText(groupIndex)
+            group_widget = workboxTAB.widget(groupIndex)
 
             # Get the workboxes tabText
             index = group_widget.currentIndex()
