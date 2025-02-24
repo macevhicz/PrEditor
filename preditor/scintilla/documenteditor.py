@@ -1570,9 +1570,11 @@ class DocumentEditor(QsciScintilla):
         filename = str(filename)
         extension = os.path.splitext(filename)[1]
 
-        if filename and extension != os.path.splitext(self._filename)[1]:
+        if self._filename and (
+            filename and extension != os.path.splitext(self._filename)[1]
+        ):
             self.setLanguage(lang.byExtension(extension))
-        elif not self._filename:
+        else:
             self.setLanguage(self._defaultLanguage)
 
         # update the filename information

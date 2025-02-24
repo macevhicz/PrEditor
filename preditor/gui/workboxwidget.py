@@ -22,7 +22,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         console=None,
         delayable_engine='default',
         core_name=None,
-        **kwargs
+        **kwargs,
     ):
         self.__set_console__(console)
         self._searchFlags = 0
