@@ -108,7 +108,6 @@ class WorkboxMixin(object):
         title = self.__workbox_trace_title__(selection=True)
         ret, was_eval = self.__console__().executeString(txt, filename=title)
         if was_eval:
-            # If the selected code was a statement print the result of the statement.
             ret = repr(ret)
             self.__console__().startOutputLine()
             if truncate:
@@ -343,8 +342,7 @@ class WorkboxMixin(object):
         ret = {}
         # Hopefully the alphabetical sorting of this dict is preserved in py3
         # to make it easy to diff the json pref file if ever required.
-        if current is not None:
-            ret['current'] = current
+        ret['current'] = current
         ret['filename'] = self._filename_pref
         ret['name'] = name
         ret['backup_file'] = self._backup_file
@@ -352,23 +350,26 @@ class WorkboxMixin(object):
         if not self._is_loaded:
             return ret
 
+        # If workbox is linked to file on disk, save it
         if self._filename_pref:
             self.__save__()
 
-        # Save backup file, but only if contents are different than last saved backup
-        data = self.get_workbox_version_text(group_name, name, prefs.VersionTypes.Last)
-        existing_text, _, _, _ = data
-        unchanged = existing_text == self.__text__()
+        # # Save backup file, but only if contents are changed
+        if self.__is_dirty__() or not self._backup_file:
+
+            temp_path = prefs.create_stamped_path(self.core_name, group_name, name)
+            self._backup_file = str(temp_path)
+
+            self.__write_file__(self._backup_file, self.__text__())
+            self.__set_last_saved_text__(self.__text__())
+
+            self._backup_file = self.__tab_widget__().__tab_widget__().get_relative_path(self._backup_file)
+            ret['backup_file'] = self._backup_file
+            ret['tempfile'] = self._backup_file
 
         name = "{}/{}".format(group_name, name)
         self.__set_last_workbox_name__(name)
 
-        if not unchanged:
-            temp_path = prefs.create_stamped_path(self.core_name, group_name, name)
-            self._backup_file = str(temp_path)
-            self.__write_file__(self._backup_file, self.__text__())
-            self.__set_last_saved_text__(self.__text__())
-            ret['backup_file'] = self._backup_file
         return ret
 
     def get_workbox_version_text(self, group_name, workbox_name, versionType):

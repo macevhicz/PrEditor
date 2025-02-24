@@ -337,8 +337,9 @@ class GroupTabWidget(OneTabWidget):
             current_editor = tab_widget.currentIndex()
             for j in range(tab_widget.count()):
                 current = True if j == current_editor else None
+                workbox = tab_widget.widget(j)
                 tabs.append(
-                    tab_widget.widget(j).__save_prefs__(
+                    workbox.__save_prefs__(
                         group_name=self.tabText(i),
                         name=tab_widget.tabText(j),
                         current=current,
