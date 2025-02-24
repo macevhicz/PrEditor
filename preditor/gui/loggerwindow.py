@@ -1003,7 +1003,9 @@ class LoggerWindow(Window):
         if not manual and not self.uiAutoSaveSettingssACT.isChecked():
             return
 
-        pref = self.load_prefs()
+        origPref = self.load_prefs()
+        pref = dict(origPref)
+
         geo = self.geometry()
 
         closed_workbox_names = self.getClosedWorkboxNames()
@@ -1072,9 +1074,12 @@ class LoggerWindow(Window):
             if plugin_pref:
                 pref["plugins"][name] = plugin_pref
 
-        self.save_prefs(pref)
-
-        self.setStatusText("Prefs saved")
+        # Only save if different from previous pref.
+        if pref != origPref:
+            self.save_prefs(pref)
+            self.setStatusText("Prefs saved")
+        else:
+            self.setStatusText("No changed prefs to save")
         self.autoHideStatusText()
 
     def auto_backup_prefs(self, filename, onlyFirst=False):
@@ -1105,6 +1110,9 @@ class LoggerWindow(Window):
 
     def load_prefs(self):
         filename = prefs.prefs_path('preditor_pref.json', core_name=self.name)
+        self.setStatusText('Loaded Prefs: {} '.format(filename))
+        self.autoHideStatusText()
+
         self.auto_backup_prefs(filename, onlyFirst=True)
         if os.path.exists(filename):
             with open(filename) as fp:
