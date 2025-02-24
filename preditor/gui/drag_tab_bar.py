@@ -305,7 +305,11 @@ class DragTabBar(QTabBar):
         self.setTabText(self._context_menu_tab, name)
 
     def copy_workbox_name(self, workbox):
-        name = workbox.__workbox_name__()
+        try:
+            name = workbox.__workbox_name__()
+        except AttributeError:
+            workbox = self.parent().currentWidget().currentWidget()
+            name = workbox.__workbox_name__()
         QApplication.clipboard().setText(name)
 
     @classmethod
