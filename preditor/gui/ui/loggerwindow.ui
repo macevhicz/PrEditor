@@ -115,12 +115,19 @@
     <property name="title">
      <string comment="File Menu">&amp;File</string>
     </property>
+    <widget class="QMenu" name="uiClosedWorkboxesMENU">
+     <property name="title">
+      <string>Recently Closed Workboxes</string>
+     </property>
+    </widget>
     <addaction name="uiNewWorkboxACT"/>
     <addaction name="uiCloseWorkboxACT"/>
     <addaction name="separator"/>
     <addaction name="uiSaveConsoleSettingsACT"/>
     <addaction name="uiRestartACT"/>
     <addaction name="uiCloseLoggerACT"/>
+    <addaction name="separator"/>
+    <addaction name="uiClosedWorkboxesMENU"/>
    </widget>
    <widget class="QMenu" name="uiHelpMENU">
     <property name="title">

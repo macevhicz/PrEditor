@@ -18,6 +18,7 @@ from Qt import QtCompat, QtCore, QtWidgets
 from Qt.QtCore import QByteArray, QFileSystemWatcher, QObject, Qt, QTimer, Signal, Slot
 from Qt.QtGui import QCursor, QFont, QIcon, QTextCursor
 from Qt.QtWidgets import (
+    QAction,
     QApplication,
     QFontDialog,
     QInputDialog,
@@ -204,6 +205,7 @@ class LoggerWindow(Window):
             lambda: self.uiWorkboxTAB.add_new_tab(group=True)
         )
         self.uiCloseWorkboxACT.triggered.connect(self.uiWorkboxTAB.close_current_tab)
+        self.maxRecentClosedWorkboxes = 20
 
         # Browse previous commands
         self.uiGetPrevCmdACT.triggered.connect(self.getPrevCommand)
@@ -220,7 +222,7 @@ class LoggerWindow(Window):
         self.uiPrevTabACT.triggered.connect(self.prevTab)
 
         # Navigate workbox versions
-        self.max_num_workbox_backups = 50
+        self.max_num_workbox_backups = 10
         self.uiSetMaxWorkboxBackupsACT.triggered.connect(self.setMaxWorkboxBackups)
 
         self.uiTab1ACT.triggered.connect(partial(self.gotoTabByIndex, 1))
@@ -934,6 +936,9 @@ class LoggerWindow(Window):
 
         pref = self.load_prefs()
         geo = self.geometry()
+
+        closed_workbox_names = self.getClosedWorkboxNames()
+
         pref.update(
             {
                 'loggergeom': [geo.x(), geo.y(), geo.width(), geo.height()],
@@ -974,6 +979,7 @@ class LoggerWindow(Window):
                 ),
                 'dont_ask_again': self.dont_ask_again,
                 'max_num_workbox_backups': self.max_num_workbox_backups,
+                'closed_workbox_names': closed_workbox_names,
             }
         )
 
@@ -996,7 +1002,7 @@ class LoggerWindow(Window):
         self.autoHideStatusText()
 
     def auto_backup_prefs(self, filename, onlyFirst=False):
-        """Auto backup prefs for logger window itself. 
+        """Auto backup prefs for logger window itself.
 
         TODO: Implement method to easily scroll thru backups. Maybe difficult, due the
         myriad combinations of workboxes and workboxes version. Maybe ignore workboxes,
@@ -1163,6 +1169,10 @@ class LoggerWindow(Window):
         self.uiWorkboxAutoCompleteEnabledACT.setChecked(workboxHintingEnabled)
         self.setAutoCompleteEnabled(workboxHintingEnabled, console=False)
 
+        # List recently closed workboxes
+        closed_workbox_names = pref.get('closed_workbox_names', [])
+        self.buildClosedWorkBoxMenu(closed_workbox_names)
+
         # Ensure the correct workbox stack page is shown
         self.update_workbox_stack()
 
@@ -1188,6 +1198,85 @@ class LoggerWindow(Window):
         if state:
             state = QByteArray.fromHex(bytes(state, 'utf-8'))
             self.restoreState(state)
+
+    def addRecentlyClosedWorkbox(self, nameIn):
+        """Add the name of a recently closed workbox to the Recently Closed Workboxes
+        menu.
+
+        Args:
+            nameIn (str): The name of the workbox
+        """
+
+        names = [nameIn]
+
+        # We want to add the new action at the top.
+        # Menu.insertAction behaves weirdly. It either replaces the 'before' action, or
+        # doesn't retain any of the lnewly added actions, so instead we clear the
+        # actions, and recreate the menu with Menu.addAction, limiting to the maxNum.
+        existingActions = self.uiClosedWorkboxesMENU.actions()
+        for existingAction in existingActions:
+            existingName = existingAction.text()
+            if existingName != nameIn:
+                names.append(existingAction.text())
+            self.uiClosedWorkboxesMENU.removeAction(existingAction)
+
+        # Limit list to self.maxRecentClosedWorkboxes
+        names = names[:self.maxRecentClosedWorkboxes]
+
+        for name in names:
+            action = self.uiClosedWorkboxesMENU.addAction(name)
+            action.triggered.connect(self.recentWorkboxActionTriggered)
+
+    def buildClosedWorkBoxMenu(self, closed_workbox_names):
+        """When dialog launched, populate the Recently Closed Workbox list here.
+        Normally, we add new names to top of list, but to start we add them in order.
+
+        Args:
+            closed_workbox_names (list): The restored names of closed workboxes.
+        """
+        # Limit list to self.maxRecentClosedWorkboxes
+        closed_workbox_names = closed_workbox_names[:self.maxRecentClosedWorkboxes]
+        for name in closed_workbox_names:
+            if name:
+                action = self.uiClosedWorkboxesMENU.addAction(name)
+                action.triggered.connect(self.recentWorkboxActionTriggered)
+
+    def getClosedWorkboxNames(self):
+        """When saving prefs, collected all the Recently Closed Workbox names in the
+        menu.
+
+        Return:
+            names (list): The list of workboxes in the Recently Closed Workboxes list
+        """
+        names = []
+        for act in self.uiClosedWorkboxesMENU.actions():
+            name = act.text()
+            if name:
+                names.append(name)
+        return names
+
+    def recentWorkboxActionTriggered(self):
+        """Slot for when user selects a Recently Closed Workbox. First, try to just show
+        the workbox if it's currenlty open. If not, recreate it. In both cases, set
+        focus on that workbox.
+
+        """
+        action = self.sender()
+        workboxName = action.text()
+        self.uiClosedWorkboxesMENU.removeAction(action)
+
+        workbox = self.workbox_for_name(workboxName, visible=True)
+        if workbox is None:
+            groupName, workboxTitle = workboxName.split("/")
+            _, workbox_widget = self.uiWorkboxTAB.add_new_tab(groupName, workboxTitle)
+
+            filename, idx, count = workbox_widget.load_workbox_version_text(
+                groupName, workboxTitle, prefs.VersionTypes.Last
+            )
+
+            txt = "{} [{}/{}]".format(filename, idx, count)
+            self.setStatusText(txt)
+            self.autoHideStatusText()
 
     def setAutoCompleteEnabled(self, state, console=True):
         if console:

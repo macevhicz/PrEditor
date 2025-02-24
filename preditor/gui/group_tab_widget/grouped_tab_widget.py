@@ -67,7 +67,18 @@ class GroupedTabWidget(OneTabWidget):
             QMessageBox.Yes | QMessageBox.Cancel,
         )
         if ret == QMessageBox.Yes:
+            self.store_closed_workbox(index)
             super(GroupedTabWidget, self).close_tab(index)
+
+    def store_closed_workbox(self, index):
+        """Store the name of the workbox being closed.
+
+        Args:
+            index (int): The index of the workbox being closed
+        """
+        workbox = self.widget(index)
+        name = workbox.__workbox_name__(workbox)
+        self.parent().window().addRecentlyClosedWorkbox(name)
 
     def default_tab(self, title='Workbox01'):
         kwargs = self.editor_kwargs if self.editor_kwargs else {}
