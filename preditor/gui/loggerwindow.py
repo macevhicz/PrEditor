@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import sys
+import time
 import warnings
 from builtins import bytes
 from datetime import datetime, timedelta
@@ -347,6 +348,12 @@ class LoggerWindow(Window):
             partial(self.change_to_workbox_version_text, prefs.VersionTypes.Last)
         )
 
+        self.uiOutputToBufferACT.toggled.connect(self.outputToBufferToggled)
+        self.outputToBufferToggled()
+        self.uiPrintLastBufferACT.triggered.connect(self.printLastBuffer)
+        self.maxRecentOutputs = 3
+        self.recentOutputs = []
+
         self.setup_run_workbox()
 
         self.setLoggingFormat()
@@ -364,6 +371,38 @@ class LoggerWindow(Window):
             QTimer.singleShot(
                 0, lambda: QTimer.singleShot(0, lambda: self.run_workbox(run_workbox))
             )
+
+    # @property
+    def outputToBuffer(self):
+        return self.uiOutputToBufferACT.isChecked()
+
+    # @property
+    def printBufferedOutput(self):
+        checked = self.uiPrintBufferedOutputACT.isChecked()
+        enabled = self.uiPrintBufferedOutputACT.isEnabled()
+        return checked and enabled
+
+    def outputToBufferToggled(self):
+        self.uiPrintBufferedOutputACT.setEnabled(self.outputToBuffer())
+
+    def printLastBuffer(self):
+        if self.recentOutputs:
+            buffer = self.recentOutputs[-1]
+            self.recentOutputs = self.recentOutputs[:-1]
+
+            startTime = time.time()
+            self.clearExecutionTime()
+            self.console().setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+            print(buffer.getvalue())
+            self.console().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            if self.reportExecutionTime is not None:
+                delta = time.time() - startTime
+                self.reportExecutionTime((delta, "--"))
+
+    def addCurrentOutput(self, currentOutput):
+        if currentOutput is not None and currentOutput.getvalue():
+            self.recentOutputs.append(currentOutput)
+            self.recentOutputs = self.recentOutputs[-self.maxRecentOutputs:]
 
     @Slot()
     def apply_options(self):
@@ -989,6 +1028,8 @@ class LoggerWindow(Window):
                 'dont_ask_again': self.dont_ask_again,
                 'max_num_workbox_backups': self.max_num_workbox_backups,
                 'closed_workbox_names': closed_workbox_names,
+                'uiOutputToBufferACT': self.uiOutputToBufferACT.isChecked(),
+                'uiPrintBufferedOutputACT': self.uiPrintBufferedOutputACT.isChecked(),
             }
         )
 
@@ -1190,6 +1231,11 @@ class LoggerWindow(Window):
 
         # Ensure the correct workbox stack page is shown
         self.update_workbox_stack()
+
+        self.uiOutputToBufferACT.setChecked(pref.get('uiOutputToBufferACT', False))
+        self.uiPrintBufferedOutputACT.setChecked(
+            pref.get('uiPrintBufferedOutputACT', False)
+        )
 
         fontStr = pref.get('consoleFont', None)
         if fontStr:

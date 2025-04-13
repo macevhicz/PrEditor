@@ -98,7 +98,7 @@
      <x>0</x>
      <y>0</y>
      <width>794</width>
-     <height>22</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="uiDebugMENU">
@@ -184,6 +184,16 @@
      <addaction name="uiSelectProportionalFontACT"/>
      <addaction name="uiSelectAllFontACT"/>
     </widget>
+    <widget class="QMenu" name="menuBuffering">
+     <property name="title">
+      <string>Buffering</string>
+     </property>
+     <addaction name="uiOutputToBufferACT"/>
+     <addaction name="uiPrintBufferedOutputACT"/>
+     <addaction name="uiPrintLastBufferACT"/>
+    </widget>
+    <addaction name="menuBuffering"/>
+    <addaction name="separator"/>
     <addaction name="uiConsoleAutoCompleteEnabledACT"/>
     <addaction name="uiWorkboxAutoCompleteEnabledACT"/>
     <addaction name="uiSpellCheckEnabledACT"/>
@@ -1141,6 +1151,36 @@ at the indicated line in the specified text editor.
    </property>
    <property name="text">
     <string>Visually Separate PrEditor Traceback</string>
+   </property>
+  </action>
+  <action name="uiOutputToBufferACT">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Output To Buffer</string>
+   </property>
+   <property name="toolTip">
+    <string>Pass all output into a file buffer, rather than output directly to the console. It will optionally be output all at once, or saved and later optionally output.</string>
+   </property>
+  </action>
+  <action name="uiPrintBufferedOutputACT">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Print Buffered Output</string>
+   </property>
+   <property name="toolTip">
+    <string>If outputting to buffer, should we print the output (ie what you normally would expect to see)</string>
+   </property>
+  </action>
+  <action name="uiPrintLastBufferACT">
+   <property name="text">
+    <string>Print last Buffered Output</string>
+   </property>
+   <property name="toolTip">
+    <string>Whenever code is executed, the output is saved. Choosing this option will print the last saved output. </string>
    </property>
   </action>
  </widget>

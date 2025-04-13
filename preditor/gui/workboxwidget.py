@@ -74,7 +74,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
     def __exec_all__(self):
         txt = self.__unix_end_lines__(self.text()).rstrip()
         title = self.__workbox_trace_title__()
-        self.__console__().executeString(txt, filename=title)
+        ret, was_eval = self.__console__().executeString(txt, filename=title)
 
     def __file_monitoring_enabled__(self):
         return self._fileMonitoringActive

@@ -10,7 +10,8 @@ import time
 import traceback
 from builtins import str as text
 from fractions import Fraction
-from functools import partial
+from functools import partial, wraps
+from io import StringIO
 
 import __main__
 from Qt import QtCompat
@@ -120,6 +121,8 @@ class ConsolePrEdit(QTextEdit):
             self.setCursorWidth(1)
 
         # self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.outputViaBuffer = True
+        self.print_std_out = True
 
     def contextMenuEvent(self, event):
         # position = self.mapTo(self.window(), QCursor.pos())
@@ -416,12 +419,74 @@ class ConsolePrEdit(QTextEdit):
                         workbox_lines.append(workbox.text(idx))
                     self.workbox_lines_by_workbox_name[workbox_name] = workbox_lines
 
+    def viaBuffer(func):  # noqa: B902, N805
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            self = args[0]
+            commandText = args[1]
+
+            old_stdout = sys.stdout
+
+            outputToBuffer = self.window().outputToBuffer()
+            printBufferedOutput = self.window().printBufferedOutput()
+            currrentOutput = None
+
+            # For some hard-to-comprehend reason, if the scroll bar isn't already
+            # visible, the benefit of writing to buffer first is negligible, or even
+            # takes longer!
+            currentScrollPolicy = self.verticalScrollBarPolicy()
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+            QApplication.instance().processEvents()
+
+            if outputToBuffer:
+                sys.stdout = currrentOutput = StringIO()
+
+            startTime = time.time()
+            try:
+                cmdresult, wasEval = func(*args, **kwargs)
+            except Exception:
+                sys.stdout = old_stdout
+                if outputToBuffer and printBufferedOutput:
+                    print(currrentOutput.getvalue())
+                raise
+            else:
+                sys.stdout = old_stdout
+                if outputToBuffer and printBufferedOutput:
+                    print(currrentOutput.getvalue())
+            finally:
+                # Let's make sure stdout is reset back to where it started
+                sys.stdout = old_stdout
+
+                # self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+                self.setVerticalScrollBarPolicy(currentScrollPolicy)
+                self.window().recentOutputs.append(currrentOutput)
+
+                if self.reportExecutionTime is not None:
+                    delta = time.time() - startTime
+                    self.reportExecutionTime((delta, commandText))
+
+                    # Provide user feedback when running long code execution.
+                    if (
+                        self.flash_window
+                        and self.flash_time
+                        and delta >= self.flash_time
+                    ):
+                        if settings.OS_TYPE == "Windows":
+                            try:
+                                from casement import utils
+                            except ImportError:
+                                # If casement is not installed, flash window is disabled
+                                pass
+                            else:
+                                hwnd = int(self.flash_window.winId())
+                                utils.flash_window(hwnd)
+            return cmdresult, wasEval
+
+        return wrapper
+
+    @viaBuffer
     def executeString(
-        self,
-        commandText,
-        consoleLine=None,
-        filename='<ConsolePrEdit>',
-        extraPrint=True
+        self, commandText, consoleLine=None, filename='<ConsolePrEdit>', extraPrint=True
     ):
         # These vars helps with faking code lines in tracebacks for stdin input, which
         # workboxes are, and py3 doesn't include in the traceback
@@ -445,7 +510,6 @@ class ConsolePrEdit(QTextEdit):
         # however eval does not accept multiple statements. For that you need
         # exec which has no Return.
         wasEval = False
-        startTime = time.time()
 
         try:
             compiled = compile(commandText, filename, 'eval')
@@ -461,22 +525,7 @@ class ConsolePrEdit(QTextEdit):
             else:
                 exec(compiled, __main__.__dict__, __main__.__dict__)
         finally:
-            # Report the total time it took to execute this code.
-            if self.reportExecutionTime is not None:
-                delta = time.time() - startTime
-                self.reportExecutionTime((delta, commandText))
-
-        # Provide user feedback when running long code execution.
-        if self.flash_window and self.flash_time and delta >= self.flash_time:
-            if settings.OS_TYPE == "Windows":
-                try:
-                    from casement import utils
-                except ImportError:
-                    # If casement is not installed, flash window is disabled
-                    pass
-                else:
-                    hwnd = int(self.flash_window.winId())
-                    utils.flash_window(hwnd)
+            pass
 
         return cmdresult, wasEval
 
