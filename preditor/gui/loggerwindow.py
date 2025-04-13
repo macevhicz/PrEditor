@@ -323,6 +323,13 @@ class LoggerWindow(Window):
             )
         )
 
+        title = self.windowTitle()
+        habUri = os.getenv("HAB_URI", None)
+        if habUri:
+            habUriStr = "Hab Uri: {}".format(habUri)
+            newTitle = "{} - {}".format(title, habUriStr)
+            self.setWindowTitle(newTitle)
+
         self.setWorkboxFontBasedOnConsole()
         self.setEditorChooserFontBasedOnConsole()
 
