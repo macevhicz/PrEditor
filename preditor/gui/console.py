@@ -23,7 +23,7 @@ from Qt.QtGui import (
     QTextCursor,
     QTextDocument,
 )
-from Qt.QtWidgets import QAbstractItemView, QAction, QApplication, QTextEdit
+from Qt.QtWidgets import QAbstractItemView, QAction, QApplication, QPlainTextEdit
 
 from .. import debug, settings, stream
 from ..streamhandler_helper import StreamHandlerHelper
@@ -32,7 +32,7 @@ from .completer import PythonCompleter
 from .suggest_path_quotes_dialog import SuggestPathQuotesDialog
 
 
-class ConsolePrEdit(QTextEdit):
+class ConsolePrEdit(QPlainTextEdit):
     # Ensure the error prompt only shows up once.
     _errorPrompted = False
     # the color error messages are displayed in, can be set by stylesheets
@@ -219,7 +219,7 @@ class ConsolePrEdit(QTextEdit):
         if ctrlPressed and "LoggerWindow" in str(type(self.window())):
             self.window().wheelEvent(event)
         else:
-            QTextEdit.wheelEvent(self, event)
+            QPlainTextEdit.wheelEvent(self, event)
 
     def keyReleaseEvent(self, event):
         """Override of keyReleaseEvent to determine when to end navigation of
@@ -348,7 +348,7 @@ class ConsolePrEdit(QTextEdit):
 
     def clear(self):
         """clears the text in the editor"""
-        QTextEdit.clear(self)
+        QPlainTextEdit.clear(self)
         self.startInputLine()
 
     def clearToLastPrompt(self):
@@ -431,13 +431,6 @@ class ConsolePrEdit(QTextEdit):
             printBufferedOutput = self.window().printBufferedOutput()
             currrentOutput = None
 
-            # For some hard-to-comprehend reason, if the scroll bar isn't already
-            # visible, the benefit of writing to buffer first is negligible, or even
-            # takes longer!
-            currentScrollPolicy = self.verticalScrollBarPolicy()
-            self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-            QApplication.instance().processEvents()
-
             if outputToBuffer:
                 sys.stdout = currrentOutput = StringIO()
 
@@ -457,8 +450,6 @@ class ConsolePrEdit(QTextEdit):
                 # Let's make sure stdout is reset back to where it started
                 sys.stdout = old_stdout
 
-                # self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-                self.setVerticalScrollBarPolicy(currentScrollPolicy)
                 self.window().recentOutputs.append(currrentOutput)
 
                 if self.reportExecutionTime is not None:
@@ -588,7 +579,7 @@ class ConsolePrEdit(QTextEdit):
         """overload the focus in event to ensure the completer has the proper widget"""
         if self.completer():
             self.completer().setWidget(self)
-        QTextEdit.focusInEvent(self, event)
+        QPlainTextEdit.focusInEvent(self, event)
 
     def insertCompletion(self, completion):
         """inserts the completion text into the editor"""
@@ -709,7 +700,7 @@ class ConsolePrEdit(QTextEdit):
 
             # Process all events we do not want to override
             if not (ctrlSpace or ctrlM or ctrlI):
-                QTextEdit.keyPressEvent(self, event)
+                QPlainTextEdit.keyPressEvent(self, event)
 
             window = self.window()
             if ctrlI:
