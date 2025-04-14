@@ -947,8 +947,6 @@ class ConsolePrEdit(QTextEdit):
                 lineNum = info.get("lineNum")
 
                 if isWorkbox:
-                    split = filename.split('/')
-                    workboxName = split[-1]
                     filename = ''
                 else:
                     filename = filename
