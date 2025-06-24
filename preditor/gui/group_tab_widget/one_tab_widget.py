@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import re
+import string
+
 from Qt.QtWidgets import QTabWidget
 
 
@@ -17,34 +20,67 @@ class OneTabWidget(QTabWidget):
         super(OneTabWidget, self).__init__(*args, **kwargs)
         self.tabCloseRequested.connect(self.close_tab)
 
-        self.default_workbox_title = "Workbox01"
+    def get_name_pattern(self, name):
+        part1 = r"^(?P<name>[^\d \n]+)"
+        part2 = r".{0,5}"
+        part3 = r"(?P<iteration>\d*)"
+        part4 = r"(?P<extension>\.[a-zA-Z]{1,9})?$"
+
+        pattern = part1 + part2 + part3 + part4
+        pattern = re.compile(pattern)
+        return pattern
+
+    def get_name_components(self, name):
+        pattern = self.get_name_pattern(name)
+        match = pattern.match(name)
+        if match:
+            dic = match.groupdict()
+            base_name = dic.get("name")
+
+            iteration = dic.get("iteration", None)
+            iteration = int(iteration) if iteration else None
+
+            extension = dic.get("extension") or ""
+        else:
+            base_name = name
+            iteration = None
+            extension = ""
+
+        # Trim any chars which were between name and iteration from base_name
+        letters = string.ascii_lowercase + string.ascii_uppercase
+        for idx in range(len(base_name), -1, -1):
+            char = base_name[idx - 1]
+            if char in letters:
+                break
+        base_name = base_name[:idx]
+
+        return base_name, iteration, extension
+
+    def conform_name(self, name):
+        base_name, iteration, extension = self.get_name_components(name)
+        iter_str = ""
+        if iteration:
+            iter_str = str(iteration).zfill(2)
+        name = base_name + iter_str + extension
+        return name
 
     def get_next_available_tab_name(self, name=None):
-        if name is None:
-            name = self.default_workbox_title
-        name = name.replace(" ", "_")
-
         existing_names = [self.tabText(i).lower() for i in range(self.count())]
 
-        base = ""
-        iter_str = ""
-        letter_found = False
-        for char in reversed(name):
-            if char.isdigit() and not letter_found:
-                iter_str += char
-            else:
-                letter_found = True
-                base += char
-        # Reverse the backwards strings
-        base = base[::-1]
-        iter_str = iter_str[::-1]
-        iteration = int(iter_str) if iter_str else 0
+        if name is None:
+            name = self.default_tab_name
+
+        base_name, iteration, extension = self.get_name_components(name)
+        name = self.conform_name(name)
+
+        if iteration is None:
+            iteration = 0
 
         if name.lower() in existing_names:
             for _ in range(1000):
                 iteration += 1
                 new_iter_str = str(iteration).zfill(2)
-                name = base + new_iter_str
+                name = base_name + new_iter_str + extension
                 if name.lower() not in existing_names:
                     break
         return name

@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import re
-
 from pathlib2 import Path
 
 from Qt.QtCore import Qt
@@ -73,20 +71,24 @@ class GroupTabWidget(OneTabWidget):
         self.uiCornerBTN = corner
         self.setCornerWidget(self.uiCornerBTN, Qt.TopRightCorner)
 
+        self.default_tab_name = "Group01"
+
     def adjustSizePolicy(self, button):
         sp = button.sizePolicy()
         sp.setVerticalPolicy(QSizePolicy.Policy.Preferred)
         button.setSizePolicy(sp)
 
-    def add_new_tab(self, group, title="Workbox01", group_fmt=None):
+    def add_new_tab(self, group, title=None, group_fmt=None):
         """Adds a new tab to the requested group, creating the group if the group
         doesn't exist.
 
         Args:
-            group: The group to add a new tab to. This can be an int index of an
-                existing tab, or the name of the group and it will create the group
-                if needed. If None is passed it will add a new tab `Group {last+1}`.
-                If True is passed, then the current group tab is used.
+            group: The group to add a new tab to. This can be
+                The name of the group: It will create the group if needed.
+                None: It will add a new tab `Group {last+1}`.
+                An int index of an existing tab
+                True: if passed, then the current group tab is used.
+
             title (str, optional): The name to give the newly created tab inside
                 the group, if not passed, use default
             group_fmt(str, optional): If None is passed to group, this string is
@@ -97,34 +99,32 @@ class GroupTabWidget(OneTabWidget):
             GroupedTabWidget: The tab group for this group.
             WorkboxMixin: The new text editor.
         """
-        if title is None:
-            title = self.get_next_available_tab_name()
-        if not group:
 
-
-
-
-
-
-            if group_fmt is None:
-                group_fmt = r'Group {}'
-            last = 0
-            for i in range(self.count()):
-                match = re.match(group_fmt.format(r'(\d+)'), self.tabText(i))
-                if match:
-                    last = max(last, int(match.group(1)))
-            group = group_fmt.format(last + 1)
-            # group = self.get_next_available_tab_name("Group01")
-
-
-
-
-
-
-
-
-        elif group is True:
+        # True
+        if group is True:
             group = self.currentIndex()
+
+        # Int
+        elif isinstance(group, int):
+            group = self.tabText(group)
+
+        # None
+        elif group is None:
+            group = self.get_next_available_tab_name(group)
+
+        # Name
+        else:
+            idx = None
+            temp_group = group
+            for i in range(self.count()):
+                if temp_group == self.tabText(i):
+                    idx = i
+                    break
+
+            if idx:
+                group = self.tabText(idx)
+            else:
+                group = temp_group
 
         parent = None
         if isinstance(group, int):
@@ -142,6 +142,7 @@ class GroupTabWidget(OneTabWidget):
 
         # Create the first editor tab and make it visible. Update last_workbox_name
         editor = parent.add_new_editor(title=title)
+
         new_workbox_name = "{}/{}".format(group_title, title)
         editor.__set_last_workbox_name__(new_workbox_name)
 
@@ -284,7 +285,7 @@ class GroupTabWidget(OneTabWidget):
                 # There is a file on disk, add the tab, creating the group
                 # tab if it hasn't already been created.
                 name = tab['name']
-                tab_widget, editor = self.add_new_tab(group_name, name)
+                tab_widget, editor = self.add_new_tab(group_name, title=name)
                 editor.__restore_prefs__(tab)
                 editor.__set_last_workbox_name__(editor.__workbox_name__())
 
