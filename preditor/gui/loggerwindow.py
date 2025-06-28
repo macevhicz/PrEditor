@@ -382,6 +382,31 @@ class LoggerWindow(Window):
                 0, lambda: QTimer.singleShot(0, lambda: self.run_workbox(run_workbox))
             )
 
+    def initDebugFile(self):
+        self.debugPath = ""
+
+        home = Path.home()
+        if home.is_dir():
+            outDir = home / "temp" / "PrEditor"
+            outDir.mkdir(exist_ok=True, parents=True)
+
+            self.debugPath = outDir / "preditorDebugOutput.txt"
+            with open(self.debugPath, "w") as f:
+                f.write("")
+
+            msg = "Debugging to file: {}".format(self.debugPath)
+            self.console().write(msg)
+
+    def debugToFile(self, msg):
+        if not hasattr(self, "debugPath"):
+            self.initDebugFile()
+        if self.debugPath:
+            with open(self.debugPath, "a") as f:
+                try:
+                    f.write(msg + "\n")
+                except Exception:
+                    pass
+
     @Slot()
     def apply_options(self):
         """Apply editor options the user chose on the WorkboxPage.Options page."""
