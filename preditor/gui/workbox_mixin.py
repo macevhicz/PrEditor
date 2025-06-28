@@ -409,7 +409,7 @@ class WorkboxMixin(object):
             txt = self.__open_file__(self._backup_file)
             self.__set_text__(txt)
         elif self._tempfile:
-            txt = self.__open_file__(self.temp_file(self._tempfile, self.core_name))
+            txt = self.__open_file__(self._tempfile)
             self.__set_text__(txt)
 
     def process_shortcut(self, event, run=True):
