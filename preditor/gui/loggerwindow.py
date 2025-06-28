@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import shutil
+import six
 import sys
 import warnings
 from builtins import bytes
@@ -380,6 +381,45 @@ class LoggerWindow(Window):
             QTimer.singleShot(
                 0, lambda: QTimer.singleShot(0, lambda: self.run_workbox(run_workbox))
             )
+
+    def initDebugFile(self):
+        """This initializes self.debugPath, for outputting debug messages directly to
+        file, completely bypassing the console.
+        """
+        self.debugPath = ""
+
+        home = Path.home()
+        if home.is_dir():
+            outDir = home / "temp" / "PrEditor"
+            outDir.mkdir(exist_ok=True, parents=True)
+
+            self.debugPath = outDir / "preditorDebugOutput.txt"
+            with open(self.debugPath, "w") as f:
+                f.write("")
+
+            msg = "Debugging to file: {}".format(self.debugPath)
+            self.console().write(msg)
+
+    def debugToFile(self, msg):
+        """This method is for working on PrEditor itself, most commonly, the console. It
+        is useful for cases where you need debugging output, but you don't want it to go
+        to the console, yet you want other 'normal' output still to be outputted to the
+        console.
+
+        If debugPath will automatically be initialized if it's not already.
+
+        Args:
+            msg(str): the message to output to the debugging log file.
+        """
+        msg = six.text_type(msg)
+        if not hasattr(self, "debugPath"):
+            self.initDebugFile()
+        if self.debugPath:
+            with open(self.debugPath, "a") as f:
+                try:
+                    f.write(msg + "\n")
+                except Exception:
+                    pass
 
     @Slot()
     def apply_options(self):
