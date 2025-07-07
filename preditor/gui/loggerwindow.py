@@ -94,6 +94,10 @@ class LoggerWindow(Window):
     def __init__(self, parent, name=None, run_workbox=False, standalone=False):
         super(LoggerWindow, self).__init__(parent=parent)
         self.name = name if name else get_core_name()
+
+        if self.name == "PrEditor":
+            self.name = "external"
+
         self._stylesheet = 'Bright'
 
         self.setupStatusTimer()
