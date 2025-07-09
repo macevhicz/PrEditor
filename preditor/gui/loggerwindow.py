@@ -1131,7 +1131,8 @@ class LoggerWindow(Window):
         if onlyFirst and len(existing):
             return
 
-        shutil.copy(path, bak_path)
+        if path.is_file():
+            shutil.copy(path, bak_path)
 
     def load_prefs(self):
         filename = prefs.prefs_path('preditor_pref.json', core_name=self.name)
