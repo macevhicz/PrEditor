@@ -922,10 +922,11 @@ class ConsolePrEdit(QTextEdit):
                     workboxLines = self.workbox_lines_by_workbox_name.get(
                         workboxName, None
                     )
-                    lineContents = workboxLines[lineNum].lstrip()
+                    if workboxLines:
+                        lineContents = workboxLines[lineNum].lstrip()
 
-                    indent = self.getIndentForCodeTracebackLine(msg)
-                    msg = "{}{}{}".format(msg, indent, lineContents)
+                        indent = self.getIndentForCodeTracebackLine(msg)
+                        msg = "{}{}{}".format(msg, indent, lineContents)
 
                 elif isConsolePrEdit:
                     consoleLine = self.consoleLine
