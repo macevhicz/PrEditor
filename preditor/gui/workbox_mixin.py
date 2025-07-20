@@ -333,10 +333,12 @@ class WorkboxMixin(object):
         """Replaces all windows and then mac line endings with unix line endings."""
         return txt.replace('\r\n', '\n').replace('\r', '\n')
 
-    def __restore_prefs__(self, prefs):
-        self._filename_pref = prefs.get('filename')
-        self._backup_file = prefs.get('backup_file')
-        self._tempfile = prefs.get('tempfile')
+    def __restore_prefs__(self, prefs_data):
+        self._filename_pref = prefs_data.get('filename')
+        self._backup_file = prefs_data.get('backup_file', "")
+        self._tempfile = prefs_data.get('tempfile', "")
+        if self._tempfile:
+            self.__show__()
 
     def __save_prefs__(self, group_name, name, current=None):
         ret = {}
@@ -347,6 +349,9 @@ class WorkboxMixin(object):
         ret['name'] = name
         ret['backup_file'] = self._backup_file
 
+        if self._tempfile:
+            ret['tempfile'] = self._tempfile
+
         if not self._is_loaded:
             return ret
 
@@ -354,16 +359,14 @@ class WorkboxMixin(object):
         if self._filename_pref:
             self.__save__()
 
-        # # Save backup file, but only if contents are changed
         if self.__is_dirty__() or not self._backup_file:
-
-            temp_path = prefs.create_stamped_path(self.core_name, group_name, name)
-            self._backup_file = str(temp_path)
-
-            self.__write_file__(self._backup_file, self.__text__())
+            full_path = prefs.create_stamped_path(self.core_name, group_name, name)
+            full_path = str(full_path)
+            self.__write_file__(full_path, self.__text__())
             self.__set_last_saved_text__(self.__text__())
 
-            self._backup_file = self.__tab_widget__().__tab_widget__().get_relative_path(self._backup_file)
+            grouped_tab = self.__tab_widget__().__tab_widget__()
+            self._backup_file = grouped_tab.get_relative_path(full_path)
             ret['backup_file'] = self._backup_file
             ret['tempfile'] = self._backup_file
 
@@ -393,14 +396,14 @@ class WorkboxMixin(object):
         filename = Path(filepath).name
         return filename, idx, count
 
-    @classmethod
-    def __open_file__(cls, filename):
+    def __open_file__(self, filename):
+        filename = self.__tab_widget__().__tab_widget__().get_full_path(filename)
         with open(filename) as fle:
             return fle.read()
         return ""
 
-    @classmethod
-    def __write_file__(cls, filename, txt):
+    def __write_file__(self, filename, txt):
+        filename = self.__tab_widget__().__tab_widget__().get_full_path(filename)
         with open(filename, 'w') as fle:
             fle.write(txt)
 

@@ -1286,6 +1286,8 @@ class LoggerWindow(Window):
         self.uiConsoleTXT.flash_time = pref.get('flash_time', 1.0)
 
         self.max_num_workbox_backups = pref.get('max_num_workbox_backups', 20)
+
+        # Workboxes
         self.uiWorkboxTAB.restore_prefs(pref.get('workbox_prefs', {}))
 
         hintingEnabled = pref.get('hintingEnabled', True)
