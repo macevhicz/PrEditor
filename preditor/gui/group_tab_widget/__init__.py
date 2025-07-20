@@ -215,6 +215,20 @@ class GroupTabWidget(OneTabWidget):
         )
         return widget, title
 
+    def get_workbox_dir(self):
+        workbox_dir = prefs_path('workboxes', core_name=self.core_name)
+        return workbox_dir
+
+    def get_full_path(self, path):
+        workbox_dir = self.get_workbox_dir()
+        full_path = str(Path(workbox_dir) / path)
+        return full_path
+
+    def get_relative_path(self, path):
+        workbox_dir = self.get_workbox_dir()
+        rel_path = str(Path(path).relative_to(workbox_dir))
+        return rel_path
+
     def restore_prefs(self, prefs):
         """Adds tab groups and tabs, restoring the selected tabs. If a tab is
         linked to a file that no longer exists, will not be added. Restores the
@@ -256,13 +270,11 @@ class GroupTabWidget(OneTabWidget):
 
         self.clear()
 
-        workbox_dir = prefs_path('workboxes', core_name=self.core_name)
         current_group = None
         for group in prefs.get('groups', []):
             current_tab = None
             group_name = group['name']
             tab_widget = None
-
             group_name = self.get_next_available_tab_name(name=group_name)
 
             for tab in group.get('tabs', []):
@@ -275,11 +287,16 @@ class GroupTabWidget(OneTabWidget):
                 # By not restoring tabs for deleted files we prevent accidentally
                 # restoring a tab with empty text.
                 temp_name = tab.get('tempfile')
-                backup_file = tab.get('backup_file')
+                if temp_name:
+                    temp_name = self.get_full_path(temp_name)
+
+                backup_file = tab.get('backup_file', "")
+                if backup_file:
+                    backup_file = self.get_full_path(backup_file)
 
                 if backup_file and not Path(backup_file).is_file():
                     continue
-                if temp_name and not (Path(workbox_dir) / temp_name).is_file():
+                if temp_name and not Path(temp_name).is_file():
                     continue
 
                 # There is a file on disk, add the tab, creating the group
