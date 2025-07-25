@@ -239,6 +239,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
     def __set_text__(self, txt, update_last_saved_text=True):
         """Replace all of the current text with txt."""
         self.setText(txt)
+        self._is_loaded = True
         if update_last_saved_text:
             self.__set_last_saved_text__(self.__text__())
 
