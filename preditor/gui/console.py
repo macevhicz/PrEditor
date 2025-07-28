@@ -120,6 +120,7 @@ class ConsolePrEdit(QTextEdit):
             self.setCursorWidth(1)
 
         # self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
     def contextMenuEvent(self, event):
         """Override contextMenuEvent method in order to have the font match the window's
