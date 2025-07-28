@@ -5,7 +5,7 @@ from pathlib2 import Path
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QHBoxLayout, QMessageBox, QSizePolicy, QToolButton, QWidget
 
-from ...prefs import prefs_path
+from ...prefs import prefs_path, get_backup_version_info, VersionTypes
 from ..drag_tab_bar import DragTabBar
 from ..workbox_text_edit import WorkboxTextEdit
 from .grouped_tab_menu import GroupTabMenu
@@ -286,22 +286,34 @@ class GroupTabWidget(OneTabWidget):
                 # preferences save.
                 # By not restoring tabs for deleted files we prevent accidentally
                 # restoring a tab with empty text.
-                temp_name = tab.get('tempfile')
-                if temp_name:
-                    temp_name = self.get_full_path(temp_name)
+                name = tab['name']
+
+                # Get save tempfile and backup file.
+                tempfile = tab.get('tempfile', "")
+                if tempfile:
+                    tempfile = self.get_full_path(tempfile)
 
                 backup_file = tab.get('backup_file', "")
                 if backup_file:
                     backup_file = self.get_full_path(backup_file)
 
-                if backup_file and not Path(backup_file).is_file():
-                    continue
-                if temp_name and not Path(temp_name).is_file():
-                    continue
+                # Check if we have a valid filepath to load. Start with backup_file
+                # which is the newer method. Fall back to trying to find the file by
+                # group name and workbox title, and finally tempfile
+                if not backup_file or not Path(backup_file).is_file():
+
+                    # See if there are any workbox backups available
+                    backup_file, idx, count = get_backup_version_info(
+                        self.window().name, group_name, name, VersionTypes.Last, ""
+                    )
+                if not backup_file:
+                    # If not workbox backups, see if there is a temp file. Otherwise,
+                    # skip
+                    if not tempfile or not Path(tempfile).is_file():
+                        continue
 
                 # There is a file on disk, add the tab, creating the group
                 # tab if it hasn't already been created.
-                name = tab['name']
                 tab_widget, editor = self.add_new_tab(group_name, title=name)
                 editor.__restore_prefs__(tab)
                 editor.__set_last_workbox_name__(editor.__workbox_name__())

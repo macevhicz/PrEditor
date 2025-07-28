@@ -10,7 +10,7 @@ from Qt.QtCore import Qt
 from Qt.QtGui import QIcon
 from Qt.QtWidgets import QAction
 
-from .. import core, resourcePath
+from .. import core, resourcePath, prefs
 from ..gui.workbox_mixin import WorkboxMixin
 from ..scintilla.documenteditor import DocumentEditor, SearchOptions
 from ..scintilla.finddialog import FindDialog
@@ -53,6 +53,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
 
     def __clear__(self):
         self.clear()
+        self.__set_last_saved_text__(self.__text__())
 
     def __comment_toggle__(self):
         self.commentToggle()
@@ -135,6 +136,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
 
     def __load__(self, filename, update_last_save=True):
         self.load(filename)
+        self.__load_workbox_version_text__(prefs.VersionTypes.Last)
         self.__set_last_saved_text__(self.__text__())
 
         workbox_name = self.__workbox_name__()

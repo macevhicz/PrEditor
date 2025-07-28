@@ -579,19 +579,10 @@ class LoggerWindow(Window):
         __main__.run_workbox = self.run_workbox
 
     def change_to_workbox_version_text(self, versionType):
-        tab_widget = self.uiWorkboxTAB
-
-        tab_group_index = tab_widget.currentIndex()
-        group_name = tab_widget.tabText(tab_group_index)
-
         tab_group = self.uiWorkboxTAB.currentWidget()
-        current_index = tab_group.currentIndex()
-        workbox_name = tab_group.tabText(current_index)
 
         workbox_widget = tab_group.currentWidget()
-        filename, idx, count = workbox_widget.load_workbox_version_text(
-            group_name, workbox_name, versionType
-        )
+        filename, idx, count = workbox_widget.__load_workbox_version_text__(versionType)
 
         txt = "{} [{}/{}]".format(filename, idx, count)
         self.setStatusText(txt)
@@ -1402,8 +1393,8 @@ class LoggerWindow(Window):
             groupName, workboxTitle = workboxName.split("/")
             _, workbox_widget = self.uiWorkboxTAB.add_new_tab(groupName, workboxTitle)
 
-            filename, idx, count = workbox_widget.load_workbox_version_text(
-                groupName, workboxTitle, prefs.VersionTypes.Last
+            filename, idx, count = workbox_widget.__load_workbox_version_text__(
+                prefs.VersionTypes.Last
             )
 
             txt = "{} [{}/{}]".format(filename, idx, count)

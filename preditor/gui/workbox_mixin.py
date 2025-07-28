@@ -223,6 +223,9 @@ class WorkboxMixin(object):
             name = ""
         return name
 
+    def backup_file(self):
+        return self._backup_file
+
     def __goto_line__(self, line):
         raise NotImplementedError("Mixin method not overridden.")
 
@@ -375,9 +378,13 @@ class WorkboxMixin(object):
 
         return ret
 
-    def get_workbox_version_text(self, group_name, workbox_name, versionType):
+    def __get_workbox_version_text__(self, group_name, workbox_name, versionType):
+        backup_file = self.__tab_widget__().__tab_widget__().get_full_path(
+            self._backup_file
+        )
+
         filepath, idx, count = prefs.get_backup_version_info(
-            self.core_name, group_name, workbox_name, versionType, self._backup_file
+            self.core_name, group_name, workbox_name, versionType, backup_file
         )
         txt = ""
         if filepath and Path(filepath).is_file():
@@ -385,8 +392,10 @@ class WorkboxMixin(object):
 
         return txt, filepath, idx, count
 
-    def load_workbox_version_text(self, group_name, workbox_name, versionType):
-        data = self.get_workbox_version_text(group_name, workbox_name, versionType)
+    def __load_workbox_version_text__(self, versionType):
+        group_name, workbox_name = self.__workbox_name__().split("/")
+
+        data = self.__get_workbox_version_text__(group_name, workbox_name, versionType)
         txt, filepath, idx, count = data
         self._backup_file = str(filepath)
 
@@ -414,9 +423,17 @@ class WorkboxMixin(object):
         self._is_loaded = True
         if self._filename_pref and Path(self._filename_pref).is_file():
             self.__load__(self._filename_pref)
-        elif self._backup_file:
-            txt = self.__open_file__(self._backup_file)
-            self.__set_text__(txt)
+        else:
+            group_name, workbox_name = self.__workbox_name__().split("/")
+            core_name = self.window().name
+            versionType = prefs.VersionTypes.Last
+            filepath, idx, count = prefs.get_backup_version_info(
+                core_name, group_name, workbox_name, versionType, ""
+            )
+
+        if count:
+            self.__load_workbox_version_text__(prefs.VersionTypes.Last)
+            self.__set_last_saved_text__(self.__text__())
         elif self._tempfile:
             txt = self.__open_file__(self._tempfile)
             self.__set_text__(txt)
