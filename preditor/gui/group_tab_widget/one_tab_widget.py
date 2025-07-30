@@ -22,11 +22,9 @@ class OneTabWidget(QTabWidget):
 
     def get_name_pattern(self, name):
         part1 = r"^(?P<name>[^\d \n]+)"
-        part2 = r".{0,5}"
-        part3 = r"(?P<iteration>\d*)"
-        part4 = r"(?P<extension>\.[a-zA-Z]{1,9})?$"
-
-        pattern = part1 + part2 + part3 + part4
+        part2 = r"(?P<iteration>\d*)"
+        part3 = r"(?P<extension>\.[a-zA-Z]{1,9})?$"
+        pattern = part1 + part2 + part3
         pattern = re.compile(pattern)
         return pattern
 
