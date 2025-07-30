@@ -1097,13 +1097,13 @@ class DocumentEditor(QsciScintilla):
             self.saveAs(filename, setFilename=False)
         return ret
 
-    def saveAs(self, filename='', setFilename=True):
+    def saveAs(self, filename='', setFilename=True, directory=''):
         logger.debug(' Save As Called '.center(60, '-'))
 
         # Disable file watching so workbox doesn't reload and scroll to the top.
         self.enableFileWatching(False)
         if not filename:
-            filename = self.filename()
+            filename = directory
             filename, extFilter = QtCompat.QFileDialog.getSaveFileName(
                 self.window(), 'Save File as...', filename
             )

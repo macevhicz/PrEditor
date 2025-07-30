@@ -135,8 +135,11 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         self.insert(txt)
 
     def __load__(self, filename, update_last_save=True):
-        self.load(filename)
-        self.__load_workbox_version_text__(prefs.VersionTypes.Last)
+        if Path(filename).is_file():
+            self.load(filename)
+        else:
+            self.__load_workbox_version_text__(prefs.VersionTypes.Last)
+
         self.__set_last_saved_text__(self.__text__())
 
         workbox_name = self.__workbox_name__()

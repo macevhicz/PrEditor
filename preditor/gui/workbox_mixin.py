@@ -341,8 +341,8 @@ class WorkboxMixin(object):
         self._filename_pref = prefs_data.get('filename')
         self._backup_file = prefs_data.get('backup_file', "")
         self._tempfile = prefs_data.get('tempfile', "")
-        if self._tempfile:
-            self.__show__()
+        # if self._tempfile:
+        #     self.__show__()
 
     def __save_prefs__(self, group_name, name, current=None):
         ret = {}
@@ -361,6 +361,7 @@ class WorkboxMixin(object):
 
         # If workbox is linked to file on disk, save it
         if self._filename_pref:
+            self._filename = self._filename_pref
             self.__save__()
 
         if self.__is_dirty__() or not self._backup_file:
@@ -369,10 +370,10 @@ class WorkboxMixin(object):
             self.__write_file__(full_path, self.__text__())
             self.__set_last_saved_text__(self.__text__())
 
-            grouped_tab = self.__tab_widget__().__tab_widget__()
-            self._backup_file = grouped_tab.get_relative_path(full_path)
+            group_tab = self.__tab_widget__().__tab_widget__()
+            self._backup_file = group_tab.get_relative_path(full_path)
             ret['backup_file'] = self._backup_file
-            ret['tempfile'] = self._backup_file
+            # ret['tempfile'] = self._backup_file
 
         name = "{}/{}".format(group_name, name)
         self.__set_last_workbox_name__(name)
@@ -398,7 +399,8 @@ class WorkboxMixin(object):
 
         data = self.__get_workbox_version_text__(group_name, workbox_name, versionType)
         txt, filepath, idx, count = data
-        self._backup_file = str(filepath)
+        group_tab = self.__tab_widget__().__tab_widget__()
+        self._backup_file = group_tab.get_relative_path(filepath)
 
         self.__set_text__(txt, update_last_saved_text=False)
         self.__tab_widget__().tabBar().update()
@@ -424,8 +426,10 @@ class WorkboxMixin(object):
 
         self._is_loaded = True
         self._show_blank = False
+        count = None
         if self._filename_pref and Path(self._filename_pref).is_file():
             self.__load__(self._filename_pref)
+            return
         else:
             group_name, workbox_name = self.__workbox_name__().split("/")
             core_name = self.window().name

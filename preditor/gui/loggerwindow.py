@@ -155,7 +155,7 @@ class LoggerWindow(Window):
         self.addAction(self.uiClearLogACT)
 
         self.maxRecentClosedWorkboxes = 20
-        self.max_num_workbox_backups = 10
+        self.max_num_backups = 100
         self.dont_ask_again = []
 
         # Load any plugins that modify the LoggerWindow
@@ -164,7 +164,6 @@ class LoggerWindow(Window):
             self.plugins[name] = plugin(self)
 
         self.restorePrefs()
-
 
         loggerName = QApplication.instance().translate(
             'PrEditorWindow', DEFAULT_CORE_NAME
@@ -903,32 +902,35 @@ class LoggerWindow(Window):
         if self._stds:
             self._stds[0].clear(stamp=True)
 
-    def prune_backup_files__(self, sub_dir='workboxes'):
-        """Prune the backup files to self.max_num_workbox_backups, per workbox
+    def prune_backup_files__(self, sub_dir=None):
+        """Prune the backup files to self.max_num_backups, per workbox
 
         Args:
             sub_dir (str, optional): The subdir to operate on.
         """
-        directory = prefs.prefs_path(sub_dir, core_name=self.name)
-        files = Path(directory).rglob("*.*")
-        pattern = r"(?P<name>\w*)-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}.py"
+        if sub_dir is None:
+            sub_dir = 'workboxes'
 
-        files_dict = {}
+        pattern = r"(?P<name>\w*)-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}.(?:py|json)"
+        files_by_name = {}
+
+        directory = prefs.prefs_path(sub_dir, core_name=self.name)
+        files = list(Path(directory).rglob("*.*"))
         for file in files:
             match = re.search(pattern, str(file))
             if not match:
                 continue
             name = match.groupdict().get("name")
 
-            files_dict.setdefault(file.parent.name, {})
-            files_dict[file.parent.name].setdefault(name, []).append(file)
+            parent = file.parent.name
+            name = parent + "/" + name
+            files_by_name.setdefault(name, []).append(file)
 
-        for _group, workbox_dict in files_dict.items():
-            for _name, files in workbox_dict.items():
-                files.sort(key=lambda f: str(f).lower())
-                files.reverse()
-                for file in files[self.max_num_workbox_backups :]:
-                    file.unlink()
+        for _name, files in files_by_name.items():
+            files.sort(key=lambda f: str(f).lower())
+            files.reverse()
+            for file in files[self.max_num_backups :]:
+                file.unlink()
 
     def linkedFileChanged(self, filename):
         # font = self.font()
@@ -1092,7 +1094,7 @@ class LoggerWindow(Window):
                     self.uiHighlightExactCompletionACT.isChecked()
                 ),
                 'dont_ask_again': self.dont_ask_again,
-                'max_num_workbox_backups': self.max_num_workbox_backups,
+                'max_num_backups': self.max_num_backups,
                 'closed_workbox_names': closed_workbox_names,
             }
         )
@@ -1289,7 +1291,7 @@ class LoggerWindow(Window):
             self.setStyleSheet(self._stylesheet)
         self.uiConsoleTXT.flash_time = pref.get('flash_time', 1.0)
 
-        self.max_num_workbox_backups = pref.get('max_num_workbox_backups', 20)
+        self.max_num_backups = pref.get('max_num_backups', self.max_num_backups)
 
         # Workboxes
         self.uiWorkboxTAB.restore_prefs(pref.get('workbox_prefs', {}))
@@ -1632,7 +1634,7 @@ class LoggerWindow(Window):
             'Must be at least 1'
         )
         mode = QInputDialog.IntInput
-        value = self.max_num_workbox_backups
+        value = self.max_num_backups
         minimum = 1
         maximum = 10000
         value, success = self.inputDialog(
@@ -1640,7 +1642,7 @@ class LoggerWindow(Window):
         )
         if success:
             value = max(value, 1)
-            self.max_num_workbox_backups = value
+            self.max_num_backups = value
 
     def setWordWrap(self, state):
         if state:

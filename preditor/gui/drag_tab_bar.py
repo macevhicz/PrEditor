@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from pathlib2 import Path
 from functools import partial
 
@@ -46,6 +47,7 @@ class DragTabBar(QTabBar):
             "normal": "lightgrey",
             "linked": "turquoise",
             "dirty": "yellow",
+            "dirtyLinked": "orange",
             "missingLinked": "red",
         }
         self.fg_color_map = {
@@ -58,20 +60,23 @@ class DragTabBar(QTabBar):
         toolTip = ""
         if self.parent():
             widget = self.parent().widget(index)
+            filename = widget.__filename__() if hasattr(widget, "text") else None
 
             if widget.__is_dirty__():
-                state = "dirty"
-                toolTip = "Workbox has unsaved changes, or it's name has changed."
-
-            if hasattr(widget, "text"):
-                filename = widget.__filename__()
                 if filename:
-                    if Path(filename).is_file():
-                        state = "linked"
-                        toolTip = "Linked to file on disk"
-                    else:
-                        state = "missingLinked"
-                        toolTip = "Linked file is missing"
+                    state = "dirtyLinked"
+                    toolTip = "Linked workbox has unsaved changes."
+                else:
+                    state = "dirty"
+                    toolTip = "Workbox has unsaved changes, or it's name has changed."
+
+            elif filename:
+                if Path(filename).is_file():
+                    state = "linked"
+                    toolTip = "Linked to file on disk"
+                else:
+                    state = "missingLinked"
+                    toolTip = "Linked file is missing"
 
         color_name = self.color_map.get(state)
 
@@ -254,14 +259,24 @@ class DragTabBar(QTabBar):
                 act = menu.addAction('Save and Link File')
                 act.triggered.connect(partial(self.save_and_link_file, workbox))
             else:
-                act = menu.addAction('Explore File')
-                act.triggered.connect(partial(self.explore_file, workbox))
+                if Path(workbox.filename()).is_file():
+                    act = menu.addAction('Explore File')
+                    act.triggered.connect(partial(self.explore_file, workbox))
 
-                act = menu.addAction('Unlink File')
-                act.triggered.connect(partial(self.unlink_file, workbox))
+                    act = menu.addAction('Unlink File')
+                    act.triggered.connect(partial(self.unlink_file, workbox))
 
-                act = menu.addAction('Save As')
-                act.triggered.connect(partial(self.save_and_link_file, workbox))
+                    act = menu.addAction('Save As')
+                    act.triggered.connect(partial(self.save_and_link_file, workbox))
+                else:
+                    act = menu.addAction('Explore File')
+                    act.triggered.connect(partial(self.explore_file, workbox))
+
+                    act = menu.addAction('Re-link File')
+                    act.triggered.connect(partial(self.link_file, workbox))
+
+                    act = menu.addAction('Unlink File')
+                    act.triggered.connect(partial(self.unlink_file, workbox))
         else:
             act = menu.addAction('Rename')
             act.triggered.connect(self.rename_tab)
@@ -275,21 +290,28 @@ class DragTabBar(QTabBar):
         return menu
 
     def link_file(self, workbox):
-        filename, _other = QFileDialog.getOpenFileName()
+        filename = workbox.filename()
+        filename, _other = QFileDialog.getOpenFileName(directory=filename)
         if filename and Path(filename).is_file():
             workbox.__load__(filename)
             workbox._filename_pref = filename
+            workbox._filename = filename
             name = Path(filename).name
             self.setTabText(self._context_menu_tab, name)
             self.update()
 
     def save_and_link_file(self, workbox):
-        workbox.saveAs()
+        filename = workbox.filename()
+        directory = six.text_type(Path(filename).parent) if filename else ""
+        workbox.saveAs(directory=directory)
+
         filename = workbox.filename()
         workbox._filename_pref = filename
+        workbox._filename = filename
         name = Path(filename).name
         self.setTabText(self._context_menu_tab, name)
         self.update()
+        workbox.__set_last_workbox_name__(workbox.__workbox_name__())
 
     def explore_file(self, workbox):
         path = Path(workbox._filename_pref)
