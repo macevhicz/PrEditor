@@ -51,7 +51,7 @@ class GroupTabWidget(OneTabWidget):
         corner.uiNewTabBTN = QToolButton(corner)
         corner.uiNewTabBTN.setObjectName('group_tab_widget_new_btn')
         corner.uiNewTabBTN.setText('+')
-        corner.uiNewTabBTN.released.connect(lambda: self.add_new_tab(None))
+        corner.uiNewTabBTN.released.connect(lambda: self.add_new_tab(None, blank=True))
 
         lyt.addWidget(corner.uiNewTabBTN)
 
@@ -78,7 +78,7 @@ class GroupTabWidget(OneTabWidget):
         sp.setVerticalPolicy(QSizePolicy.Policy.Preferred)
         button.setSizePolicy(sp)
 
-    def add_new_tab(self, group, title=None, group_fmt=None):
+    def add_new_tab(self, group, title=None, group_fmt=None, blank=False):
         """Adds a new tab to the requested group, creating the group if the group
         doesn't exist.
 
@@ -141,7 +141,7 @@ class GroupTabWidget(OneTabWidget):
             self.addTab(parent, group_title)
 
         # Create the first editor tab and make it visible. Update last_workbox_name
-        editor = parent.add_new_editor(title=title)
+        editor = parent.add_new_editor(title=title, blank=blank)
 
         new_workbox_name = "{}/{}".format(group_title, title)
         editor.__set_last_workbox_name__(new_workbox_name)

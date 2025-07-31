@@ -20,6 +20,7 @@ class WorkboxMixin(object):
         super(WorkboxMixin, self).__init__(parent=parent, **kwargs)
         self._filename_pref = filename
         self._is_loaded = False
+        self._show_blank = False
 
         self._tempfile = tempfile
         self._backup_file = None
@@ -417,10 +418,12 @@ class WorkboxMixin(object):
             fle.write(txt)
 
     def __show__(self):
-        if self._is_loaded:
+        if self._is_loaded or self._show_blank:
+            self._show_blank = False
             return
 
         self._is_loaded = True
+        self._show_blank = False
         if self._filename_pref and Path(self._filename_pref).is_file():
             self.__load__(self._filename_pref)
         else:

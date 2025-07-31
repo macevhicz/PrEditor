@@ -21,7 +21,7 @@ class GroupedTabWidget(OneTabWidget):
 
         self.uiCornerBTN = QToolButton(self)
         self.uiCornerBTN.setText('+')
-        self.uiCornerBTN.released.connect(lambda: self.add_new_editor())
+        self.uiCornerBTN.released.connect(lambda: self.add_new_editor(blank=True))
         self.setCornerWidget(self.uiCornerBTN, Qt.TopRightCorner)
 
         self.default_tab_name = "Workbox01"
@@ -38,15 +38,20 @@ class GroupedTabWidget(OneTabWidget):
                 break
         return is_dirty
 
-    def add_new_editor(self, title=None):
+    def add_new_editor(self, title=None, blank=False):
         title = self.get_next_available_tab_name(name=title)
         editor, title = self.default_tab(title)
+
+        editor._show_blank = blank
 
         new_title = editor.__workbox_name__().split("/")[0] + "/{}".format(title)
         editor.__set_last_workbox_name__(new_title)
 
         index = self.addTab(editor, title)
         self.setCurrentIndex(index)
+
+        if blank:
+            editor._is_loaded = True
         return editor
 
     def addTab(self, *args, **kwargs):  # noqa: N802
