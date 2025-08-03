@@ -192,7 +192,7 @@ ConsolePrEdit {
   color: rgb(255, 255, 255);
   background-color: rgb(70, 70, 73);
   qproperty-commentColor: rgb(0, 206, 52);
-  qproperty-keywordColor: rgb(17, 154, 255);
+  qproperty-keywordColor: rgb(255, 20, 100);
   qproperty-resultColor: rgb(128, 128, 128);
   qproperty-stdoutColor: rgb(17, 154, 255);
   qproperty-stringColor: rgb(255, 128, 0);

@@ -46,11 +46,6 @@ class ConsolePrEdit(QTextEdit):
 
     def __init__(self, parent):
         super(ConsolePrEdit, self).__init__(parent)
-        # store the error buffer
-        self._completer = None
-
-        # If populated, also write to this interface
-        self.outputPipe = None
 
         self._consolePrompt = '>>> '
         # Note: Changing _outputPrompt may require updating resource\lang\python.xml
@@ -59,6 +54,16 @@ class ConsolePrEdit(QTextEdit):
         # Method used to update the gui when code is executed
         self.clearExecutionTime = None
         self.reportExecutionTime = None
+
+        # Create the highlighter
+        highlight = CodeHighlighter(self, 'Python')
+        self.setCodeHighlighter(highlight)
+
+        # store the error buffer
+        self._completer = None
+
+        # If populated, also write to this interface
+        self.outputPipe = None
 
         self._firstShow = True
 
@@ -100,11 +105,6 @@ class ConsolePrEdit(QTextEdit):
         StreamHandlerHelper.replace_stream(self.stdout, sys.stdout)
         StreamHandlerHelper.replace_stream(self.stderr, sys.stderr)
 
-        # create the highlighter
-        highlight = CodeHighlighter(self)
-        highlight.setLanguage('Python')
-        self.uiCodeHighlighter = highlight
-
         self.uiClearToLastPromptACT = QAction('Clear to Last', self)
         self.uiClearToLastPromptACT.triggered.connect(self.clearToLastPrompt)
         self.uiClearToLastPromptACT.setShortcut(Qt.CTRL | Qt.SHIFT | Qt.Key_Backspace)
@@ -119,8 +119,13 @@ class ConsolePrEdit(QTextEdit):
         if not self.cursorWidth():
             self.setCursorWidth(1)
 
-        # self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
+    def setCodeHighlighter(self, highlight):
+        self._uiCodeHighlighter = highlight
+
+    def codeHighlighter(self):
+        return self._uiCodeHighlighter
 
     def contextMenuEvent(self, event):
         """Override contextMenuEvent method in order to have the font match the window's
@@ -748,6 +753,10 @@ class ConsolePrEdit(QTextEdit):
         if self._firstShow:
             self.startInputLine()
             self._firstShow = False
+
+            # Redfine highlight variables now that stylesheet may have been updated
+            self.codeHighlighter().defineHighlightVariables()
+
         super(ConsolePrEdit, self).showEvent(event)
 
     def startInputLine(self):
@@ -842,6 +851,7 @@ class ConsolePrEdit(QTextEdit):
 
     def write(self, msg, error=False):
         """write the message to the logger"""
+
         # Convert the stream_manager's stream to the boolean value this function expects
         error = error == stream.STDERR
         # Check that we haven't been garbage collected before trying to write.
