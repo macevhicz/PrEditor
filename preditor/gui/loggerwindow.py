@@ -60,6 +60,7 @@ class WorkboxPages:
 
     Options = 0
     Workboxes = 1
+    Preferences = 2
 
 
 class WorkboxName(str):
@@ -155,7 +156,6 @@ class LoggerWindow(Window):
         self.addAction(self.uiClearLogACT)
 
         self.maxRecentClosedWorkboxes = 20
-        self.max_num_backups = 100
         self.dont_ask_again = []
 
         # Load any plugins that modify the LoggerWindow
@@ -218,10 +218,10 @@ class LoggerWindow(Window):
             partial(self.execSelected, truncate=False)
         )
 
-        self.uiConsoleAutoCompleteEnabledACT.toggled.connect(
+        self.uiConsoleAutoCompleteEnabledCHK.toggled.connect(
             partial(self.setAutoCompleteEnabled, console=True)
         )
-        self.uiWorkboxAutoCompleteEnabledACT.toggled.connect(
+        self.uiWorkboxAutoCompleteEnabledCHK.toggled.connect(
             partial(self.setAutoCompleteEnabled, console=False)
         )
 
@@ -274,8 +274,6 @@ class LoggerWindow(Window):
         self.uiPrevTabACT.triggered.connect(self.prevTab)
 
         # Navigate workbox versions
-        self.uiSetMaxWorkboxBackupsACT.triggered.connect(self.setMaxWorkboxBackups)
-
         self.uiTab1ACT.triggered.connect(partial(self.gotoTabByIndex, 1))
         self.uiTab2ACT.triggered.connect(partial(self.gotoTabByIndex, 2))
         self.uiTab3ACT.triggered.connect(partial(self.gotoTabByIndex, 3))
@@ -302,10 +300,10 @@ class LoggerWindow(Window):
 
         self.uiCommentToggleACT.triggered.connect(self.comment_toggle)
 
-        self.uiSpellCheckEnabledACT.toggled.connect(self.setSpellCheckEnabled)
-        self.uiIndentationsTabsACT.toggled.connect(self.updateIndentationsUseTabs)
-        self.uiCopyTabsToSpacesACT.toggled.connect(self.updateCopyIndentsAsSpaces)
-        self.uiWordWrapACT.toggled.connect(self.setWordWrap)
+        self.uiSpellCheckEnabledCHK.toggled.connect(self.setSpellCheckEnabled)
+        self.uiIndentationsTabsCHK.toggled.connect(self.updateIndentationsUseTabs)
+        self.uiCopyTabsToSpacesCHK.toggled.connect(self.updateCopyIndentsAsSpaces)
+        self.uiWordWrapCHK.toggled.connect(self.setWordWrap)
         self.uiResetWarningFiltersACT.triggered.connect(warnings.resetwarnings)
         self.uiLogToFileACT.triggered.connect(self.installLogToFile)
         self.uiLogToFileClearACT.triggered.connect(self.clearLogToFile)
@@ -313,13 +311,12 @@ class LoggerWindow(Window):
         self.uiSaveConsoleSettingsACT.triggered.connect(
             lambda: self.recordPrefs(manual=True)
         )
-        self.uiClearBeforeRunningACT.triggered.connect(self.setClearBeforeRunning)
-        self.uiEditorVerticalACT.toggled.connect(self.adjustWorkboxOrientation)
+        self.uiClearBeforeRunningCHK.toggled.connect(self.setClearBeforeRunning)
+        self.uiEditorVerticalCHK.toggled.connect(self.adjustWorkboxOrientation)
         self.uiEnvironmentVarsACT.triggered.connect(self.showEnvironmentVars)
         self.uiBackupPreferencesACT.triggered.connect(self.backupPreferences)
         self.uiBrowsePreferencesACT.triggered.connect(self.browsePreferences)
         self.uiAboutPreditorACT.triggered.connect(self.show_about)
-        self.uiSetFlashWindowIntervalACT.triggered.connect(self.setFlashWindowInterval)
 
         self.uiSetPreferredTextEditorPathACT.triggered.connect(
             self.openSetPreferredTextEditorDialog
@@ -821,7 +818,8 @@ class LoggerWindow(Window):
             # child.resize()
         self.setFont(newFont)
         QToolTip.setFont(newFont)
-        # self.resize()
+
+        self.setDialogFont(self.uiPreferencesPAGE)
 
     def setFontSize(self, newSize):
         """Update the font size in the console and current workbox.
@@ -903,7 +901,7 @@ class LoggerWindow(Window):
             self._stds[0].clear(stamp=True)
 
     def prune_backup_files__(self, sub_dir=None):
-        """Prune the backup files to self.max_num_backups, per workbox
+        """Prune the backup files to uiMaxNumBackupsSPIN value, per workbox
 
         Args:
             sub_dir (str, optional): The subdir to operate on.
@@ -929,7 +927,9 @@ class LoggerWindow(Window):
         for _name, files in files_by_name.items():
             files.sort(key=lambda f: str(f).lower())
             files.reverse()
-            for file in files[self.max_num_backups :]:
+            max_num_backups = self.uiMaxNumBackupsSPIN.value()
+            self.debugToFile("max_num_backups = {}".format(max_num_backups))
+            for file in files[max_num_backups :]:
                 file.unlink()
 
     def linkedFileChanged(self, filename):
@@ -980,11 +980,11 @@ class LoggerWindow(Window):
 
     def execAll(self):
         """Clears the console before executing all workbox code"""
-        if self.uiClearBeforeRunningACT.isChecked():
+        if self.uiClearBeforeRunningCHK.isChecked():
             self.clearLog()
         self.current_workbox().__exec_all__()
 
-        if self.uiAutoPromptACT.isChecked():
+        if self.uiAutoPromptCHK.isChecked():
             console = self.console()
             prompt = console.prompt()
             console.startPrompt(prompt)
@@ -996,13 +996,15 @@ class LoggerWindow(Window):
         because the workbox will always intercept it. So instead, the workbox's
         keyPressEvent will notice the  shortcut and call this method.
         """
+        self.debugToFile("# execSelected")
 
-        if self.uiClearBeforeRunningACT.isChecked():
+        if self.uiClearBeforeRunningCHK.isChecked():
             self.clearLog()
 
         self.current_workbox().__exec_selected__(truncate=truncate)
 
-        if self.uiAutoPromptACT.isChecked():
+        self.debugToFile("self.uiAutoPromptCHK.isChecked() = {}".format(self.uiAutoPromptCHK.isChecked()))
+        if self.uiAutoPromptCHK.isChecked():
             self.console().startInputLine()
 
     def keyPressEvent(self, event):
@@ -1045,7 +1047,7 @@ class LoggerWindow(Window):
         self.uiMenuBar.adjustSize()
 
     def recordPrefs(self, manual=False):
-        if not manual and not self.uiAutoSaveSettingssACT.isChecked():
+        if not manual and not self.uiAutoSaveSettingsCHK.isChecked():
             return
 
         origPref = self.load_prefs()
@@ -1059,42 +1061,41 @@ class LoggerWindow(Window):
             {
                 'loggergeom': [geo.x(), geo.y(), geo.width(), geo.height()],
                 'windowState': int(self.windowState()),
-                'SplitterVertical': self.uiEditorVerticalACT.isChecked(),
+                'SplitterVertical': self.uiEditorVerticalCHK.isChecked(),
                 'SplitterSize': self.uiSplitterSPLIT.sizes(),
-                'tabIndent': self.uiIndentationsTabsACT.isChecked(),
-                'copyIndentsAsSpaces': self.uiCopyTabsToSpacesACT.isChecked(),
-                'hintingEnabled': self.uiConsoleAutoCompleteEnabledACT.isChecked(),
+                'tabIndent': self.uiIndentationsTabsCHK.isChecked(),
+                'copyIndentsAsSpaces': self.uiCopyTabsToSpacesCHK.isChecked(),
+                'hintingEnabled': self.uiConsoleAutoCompleteEnabledCHK.isChecked(),
                 'workboxHintingEnabled': (
-                    self.uiWorkboxAutoCompleteEnabledACT.isChecked()
+                    self.uiWorkboxAutoCompleteEnabledCHK.isChecked()
                 ),
-                'spellCheckEnabled': self.uiSpellCheckEnabledACT.isChecked(),
-                'wordWrap': self.uiWordWrapACT.isChecked(),
-                'clearBeforeRunning': self.uiClearBeforeRunningACT.isChecked(),
-                'uiSelectTextACT': self.uiSelectTextACT.isChecked(),
+                'spellCheckEnabled': self.uiSpellCheckEnabledCHK.isChecked(),
+                'wordWrap': self.uiWordWrapCHK.isChecked(),
+                'clearBeforeRunning': self.uiClearBeforeRunningCHK.isChecked(),
+                'selectText': self.uiSelectTextCHK.isChecked(),
                 'toolbarStates': str(self.saveState().toHex(), 'utf-8'),
                 'guiFont': self.font().toString(),
                 'consoleFont': self.console().font().toString(),
-                'uiAutoSaveSettingssACT': self.uiAutoSaveSettingssACT.isChecked(),
-                'uiAutoPromptACT': self.uiAutoPromptACT.isChecked(),
-                'uiLinesInNewWorkboxACT': self.uiLinesInNewWorkboxACT.isChecked(),
-                'uiErrorHyperlinksACT': self.uiErrorHyperlinksACT.isChecked(),
+                'autoSaveSettings': self.uiAutoSaveSettingsCHK.isChecked(),
+                'autoPrompt': self.uiAutoPromptCHK.isChecked(),
+                'errorHyperlinks': self.uiErrorHyperlinksCHK.isChecked(),
                 'uiStatusLbl_limit': self.uiStatusLBL.limit(),
                 'textEditorPath': self.textEditorPath,
                 'textEditorCmdTempl': self.textEditorCmdTempl,
-                'uiSeparateTracebackACT': self.uiSeparateTracebackACT.isChecked(),
+                'separateTraceback': self.uiSeparateTracebackCHK.isChecked(),
                 'currentStyleSheet': self._stylesheet,
-                'flash_time': self.uiConsoleTXT.flash_time,
+                'flash_time': self.uiFlashTimeSPIN.value(),
                 'find_files_regex': self.uiFindInWorkboxesWGT.uiRegexBTN.isChecked(),
                 'find_files_cs': (
                     self.uiFindInWorkboxesWGT.uiCaseSensitiveBTN.isChecked()
                 ),
                 'find_files_context': self.uiFindInWorkboxesWGT.uiContextSPN.value(),
                 'find_files_text': self.uiFindInWorkboxesWGT.uiFindTXT.text(),
-                'uiHighlightExactCompletionACT': (
-                    self.uiHighlightExactCompletionACT.isChecked()
+                'highlightExactCompletion': (
+                    self.uiHighlightExactCompletionCHK.isChecked()
                 ),
                 'dont_ask_again': self.dont_ask_again,
-                'max_num_backups': self.max_num_backups,
+                'max_num_backups': self.uiMaxNumBackupsSPIN.value(),
                 'closed_workbox_names': closed_workbox_names,
             }
         )
@@ -1154,16 +1155,47 @@ class LoggerWindow(Window):
         if path.is_file():
             shutil.copy(path, bak_path)
 
+    def convert_obsolete_keys(self, pref):
+        """Some settings have been moved from menus (actions) to the newer preferences
+        stack page (checkboxes). So, this is a transitional method to convert to newer
+        perf names.
+        """
+        obsoletes = [
+            "uiAutoSaveSettingssACT",
+            "uiAutoPromptACT",
+            "uiErrorHyperlinksACT",
+            "uiHighlightExactCompletionACT",
+            "uiSelectTextACT",
+            "uiSeparateTracebackACT",
+        ]
+        for obsolete in obsoletes:
+            curPref = pref.pop(obsolete, None)
+            if curPref is None:
+                continue
+            new = obsolete[2: -3]
+
+            # Fix misspelling
+            if new == "AutoSaveSettingss":
+                new = new[:-1]
+
+            # Lowercase first character
+            new = new[0].lower() + new[1:]
+
+            pref[new] = curPref
+        return pref
+
     def load_prefs(self):
         filename = prefs.prefs_path('preditor_pref.json', core_name=self.name)
         self.setStatusText('Loaded Prefs: {} '.format(filename))
         self.autoHideStatusText()
 
+        pref = {}
         self.auto_backup_prefs(filename, onlyFirst=True)
         if os.path.exists(filename):
             with open(filename) as fp:
-                return json.load(fp)
-        return {}
+                pref = json.load(fp)
+                pref = self.convert_obsolete_keys(pref)
+        return pref
 
     def save_prefs(self, pref):
         # Save preferences to disk
@@ -1226,36 +1258,33 @@ class LoggerWindow(Window):
         # Geometry
         if 'loggergeom' in pref:
             self.setGeometry(*pref['loggergeom'])
-        self.uiEditorVerticalACT.setChecked(pref.get('SplitterVertical', False))
-        self.adjustWorkboxOrientation(self.uiEditorVerticalACT.isChecked())
+        self.uiEditorVerticalCHK.setChecked(pref.get('SplitterVertical', False))
+        self.adjustWorkboxOrientation(self.uiEditorVerticalCHK.isChecked())
 
         sizes = pref.get('SplitterSize')
         if sizes:
             self.uiSplitterSPLIT.setSizes(sizes)
         self.setWindowState(Qt.WindowStates(pref.get('windowState', 0)))
-        self.uiIndentationsTabsACT.setChecked(pref.get('tabIndent', True))
-        self.uiCopyTabsToSpacesACT.setChecked(pref.get('copyIndentsAsSpaces', False))
+        self.uiIndentationsTabsCHK.setChecked(pref.get('tabIndent', True))
+        self.uiCopyTabsToSpacesCHK.setChecked(pref.get('copyIndentsAsSpaces', False))
 
         # completer settings
         self.setCaseSensitive(pref.get('caseSensitive', True))
         completerMode = CompleterMode(pref.get('completerMode', 0))
         self.cycleToCompleterMode(completerMode)
         self.setCompleterMode(completerMode)
-        self.uiHighlightExactCompletionACT.setChecked(
-            pref.get('uiHighlightExactCompletionACT', False)
+        self.uiHighlightExactCompletionCHK.setChecked(
+            pref.get('highlightExactCompletion', False)
         )
 
-        self.setSpellCheckEnabled(self.uiSpellCheckEnabledACT.isChecked())
-        self.uiSpellCheckEnabledACT.setChecked(pref.get('spellCheckEnabled', False))
-        self.uiSpellCheckEnabledACT.setDisabled(False)
+        self.setSpellCheckEnabled(self.uiSpellCheckEnabledCHK.isChecked())
+        self.uiSpellCheckEnabledCHK.setChecked(pref.get('spellCheckEnabled', False))
+        self.uiSpellCheckEnabledCHK.setDisabled(False)
 
-        self.uiAutoSaveSettingssACT.setChecked(pref.get('uiAutoSaveSettingssACT', True))
+        self.uiAutoSaveSettingsCHK.setChecked(pref.get('autoSaveSettings', True))
 
-        self.uiAutoPromptACT.setChecked(pref.get('uiAutoPromptACT', False))
-        self.uiLinesInNewWorkboxACT.setChecked(
-            pref.get('uiLinesInNewWorkboxACT', False)
-        )
-        self.uiErrorHyperlinksACT.setChecked(pref.get('uiErrorHyperlinksACT', True))
+        self.uiAutoPromptCHK.setChecked(pref.get('autoPrompt', False))
+        self.uiErrorHyperlinksCHK.setChecked(pref.get('errorHyperlinks', True))
         self.uiStatusLBL.setLimit(pref.get('uiStatusLbl_limit', 5))
 
         # Find Files settings
@@ -1276,31 +1305,31 @@ class LoggerWindow(Window):
         self.textEditorPath = pref.get('textEditorPath', defaultExePath)
         self.textEditorCmdTempl = pref.get('textEditorCmdTempl', defaultCmd)
 
-        self.uiSeparateTracebackACT.setChecked(pref.get('uiSeparateTracebackACT', True))
+        self.uiSeparateTracebackCHK.setChecked(pref.get('separateTracebackCHK', True))
 
-        self.uiWordWrapACT.setChecked(pref.get('wordWrap', True))
-        self.setWordWrap(self.uiWordWrapACT.isChecked())
-        self.uiClearBeforeRunningACT.setChecked(pref.get('clearBeforeRunning', False))
-        self.setClearBeforeRunning(self.uiClearBeforeRunningACT.isChecked())
-        self.uiSelectTextACT.setChecked(pref.get('uiSelectTextACT', True))
+        self.uiWordWrapCHK.setChecked(pref.get('wordWrap', True))
+        self.setWordWrap(self.uiWordWrapCHK.isChecked())
+        self.uiClearBeforeRunningCHK.setChecked(pref.get('clearBeforeRunning', False))
+        self.setClearBeforeRunning(self.uiClearBeforeRunningCHK.isChecked())
+        self.uiSelectTextCHK.setChecked(pref.get('selectTextCHK', True))
 
         self._stylesheet = pref.get('currentStyleSheet', 'Bright')
         if self._stylesheet == 'Custom':
             self.setStyleSheet(pref.get('styleSheet', ''))
         else:
             self.setStyleSheet(self._stylesheet)
-        self.uiConsoleTXT.flash_time = pref.get('flash_time', 1.0)
+        self.uiFlashTimeSPIN.setValue(pref.get('flash_time', 1.0))
 
-        self.max_num_backups = pref.get('max_num_backups', self.max_num_backups)
+        self.uiMaxNumBackupsSPIN.setValue(pref.get('max_num_backups', 50))
 
         # Workboxes
         self.uiWorkboxTAB.restore_prefs(pref.get('workbox_prefs', {}))
 
         hintingEnabled = pref.get('hintingEnabled', True)
-        self.uiConsoleAutoCompleteEnabledACT.setChecked(hintingEnabled)
+        self.uiConsoleAutoCompleteEnabledCHK.setChecked(hintingEnabled)
         self.setAutoCompleteEnabled(hintingEnabled, console=True)
         workboxHintingEnabled = pref.get('workboxHintingEnabled', True)
-        self.uiWorkboxAutoCompleteEnabledACT.setChecked(workboxHintingEnabled)
+        self.uiWorkboxAutoCompleteEnabledCHK.setChecked(workboxHintingEnabled)
         self.setAutoCompleteEnabled(workboxHintingEnabled, console=False)
 
         # List recently closed workboxes
@@ -1430,7 +1459,7 @@ class LoggerWindow(Window):
             # Spell check can not be enabled
             if self.isVisible():
                 # Only show warning if Logger is visible and also disable the action
-                self.uiSpellCheckEnabledACT.setDisabled(True)
+                self.uiSpellCheckEnabledCHK.setDisabled(True)
                 QMessageBox.warning(
                     self, "Spell-Check", 'Unable to activate spell check.'
                 )
@@ -1614,36 +1643,6 @@ class LoggerWindow(Window):
 
         return value, success
 
-    def setFlashWindowInterval(self):
-        value = self.uiConsoleTXT.flash_time
-        title = "Set flash window"
-        text = (
-            'If running code in the logger takes X seconds or longer,\n'
-            'the window will flash if it is not in focus.\n'
-            'Setting the value to zero will disable flashing.'
-        )
-        mode = QInputDialog.DoubleInput
-        value, success = self.inputDialog(title, text, mode, value)
-        if success:
-            self.uiConsoleTXT.flash_time = value
-
-    def setMaxWorkboxBackups(self):
-        title = "Max workbox backups"
-        text = (
-            'Set the maximun number of backup files on disk per workbox.\n'
-            'Must be at least 1'
-        )
-        mode = QInputDialog.IntInput
-        value = self.max_num_backups
-        minimum = 1
-        maximum = 10000
-        value, success = self.inputDialog(
-            title, text, mode, value, minimum=minimum, maximum=maximum
-        )
-        if success:
-            value = max(value, 1)
-            self.max_num_backups = value
-
     def setWordWrap(self, state):
         if state:
             self.uiConsoleTXT.setLineWrapMode(self.uiConsoleTXT.WidgetWidth)
@@ -1682,6 +1681,10 @@ class LoggerWindow(Window):
         self.uiWorkboxSTACK.setCurrentIndex(WorkboxPages.Options)
 
     @Slot()
+    def show_preferences(self):
+        self.uiWorkboxSTACK.setCurrentIndex(WorkboxPages.Preferences)
+
+    @Slot()
     def show_find_in_workboxes(self):
         """Ensure the find workboxes widget is visible and has focus."""
         self.uiFindInWorkboxesWGT.activate()
@@ -1705,13 +1708,13 @@ class LoggerWindow(Window):
     def updateCopyIndentsAsSpaces(self):
         for workbox, _, _, _, _ in self.uiWorkboxTAB.all_widgets():
             workbox.__set_copy_indents_as_spaces__(
-                self.uiCopyTabsToSpacesACT.isChecked()
+                self.uiCopyTabsToSpacesCHK.isChecked()
             )
 
     def updateIndentationsUseTabs(self):
         for workbox, _, _, _, _ in self.uiWorkboxTAB.all_widgets():
             workbox.__set_indentations_use_tabs__(
-                self.uiIndentationsTabsACT.isChecked()
+                self.uiIndentationsTabsCHK.isChecked()
             )
 
     @Slot()

@@ -453,6 +453,7 @@ class DocumentEditor(QsciScintilla):
         If copyIndentsAsSpaces and self.indentationsUseTabs() is True it will convert
         any indents to spaces before copying the text.
         """
+        self.window().debugToFile("self.copyIndentsAsSpaces = {}".format(self.copyIndentsAsSpaces))
         if self.copyIndentsAsSpaces and self.indentationsUseTabs():
             self.copySpaceIndentation()
         else:

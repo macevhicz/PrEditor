@@ -201,7 +201,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
             txt = self.text(line)
 
             lineLength = len(self.text(line).rstrip())
-            selectText = self.window().uiSelectTextACT.isChecked() or selectText
+            selectText = self.window().uiSelectTextCHK.isChecked() or selectText
 
             if selectText:
                 self.setSelection(line, 0, line, lineLength)
