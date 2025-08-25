@@ -1227,6 +1227,8 @@ class LoggerWindow(Window):
                 ),
                 'dont_ask_again': self.dont_ask_again,
                 'max_num_backups': self.uiMaxNumBackupsSPIN.value(),
+                'max_recent_workboxes': self.uiMaxNumRecentWorkboxesSPIN.value(),
+                'closedWorkboxData': self.getClosedWorkboxData(),
             }
         )
 
@@ -1518,6 +1520,8 @@ class LoggerWindow(Window):
                 self.setGuiFont(newFont=guiFont)
 
         self.dont_ask_again = pref.get('dont_ask_again', [])
+
+        self.uiExtraTooltipInfoCHK.setChecked(pref.get("uiExtraTooltipInfoCHK", False))
 
         # Allow any plugins to restore their own preferences
         for name, plugin in self.plugins.items():
