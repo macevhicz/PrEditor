@@ -1550,7 +1550,7 @@ class LoggerWindow(Window):
         self.uiFindInWorkboxesWGT.uiFindTXT.setText(pref.get('find_files_text', ''))
 
         # External text editor filepath and command template
-        defaultExePath = r"C:\Program Files\Sublime Text 3\sublime_text.exe"
+        defaultExePath = r"C:\Program Files\Sublime Text\sublime_text.exe"
         defaultCmd = r'"{exePath}" "{modulePath}":{lineNum}'
         self.textEditorPath = pref.get('textEditorPath', defaultExePath)
         self.textEditorCmdTempl = pref.get('textEditorCmdTempl', defaultCmd)
@@ -1620,7 +1620,18 @@ class LoggerWindow(Window):
             state = QByteArray.fromHex(bytes(state, 'utf-8'))
             self.restoreState(state)
 
-    def addRecentlyClosedWorkbox(self, workbox, max_text_lines=20):
+    def truncate_text_lines(self, text, max_text_lines=20):
+        lines = text.split("\n")
+        orig_len = len(lines)
+        lines = lines[:max_text_lines]
+        trim_len = len(lines)
+        if orig_len != trim_len:
+            lines.append("...")
+        truncated = "\n".join(lines)
+
+        return truncated
+
+    def addRecentlyClosedWorkbox(self, workbox):
         """Add the name of a recently closed workbox to the Recently Closed
         Workboxes menu, and add a section of it's text as a tooltip. Also, add
         data (a dict) with information about the workbox, so it can be restored.
@@ -1639,13 +1650,7 @@ class LoggerWindow(Window):
         filename = workbox.__filename__()
 
         # Add a portion of the text so user can understand what is in each box
-        lines = workbox.text().split("\n")
-        orig_len = len(lines)
-        lines = workbox.text().split("\n")[:max_text_lines]
-        trim_len = len(lines)
-        if orig_len != trim_len:
-            lines.append("...")
-        text_sample = "\n".join(lines)
+        text_sample = self.truncate_text_lines(workbox.text())
 
         # Collect all the info for this workbox
         workboxDatum = dict(
