@@ -139,7 +139,7 @@ class LoggerWindow(Window):
         self.uiLogToFileClearACT.setVisible(False)
 
         self.uiRestartACT.triggered.connect(self.restartLogger)
-        self.uiCloseLoggerACT.triggered.connect(self.closeLogger)
+        self.uiCloseLoggerACT.triggered.connect(self.closeLoggerByAction)
 
         self.uiRunAllACT.triggered.connect(self.execAll)
         # Even though the RunSelected actions (with shortcuts) are connected
@@ -1134,7 +1134,17 @@ class LoggerWindow(Window):
         for editor, _, _, _, _ in self.uiWorkboxTAB.all_widgets():
             editor.__close__()
 
-    def closeLogger(self):
+    def closeLoggerByAction(self):
+        if self.uiConfirmBeforeCloseCHK.isChecked():
+            msg = "Are you sure you want to close PrEditor?"
+            ret = QMessageBox.question(
+                self,
+                'Confirm close',
+                msg,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            )
+            if ret != QMessageBox.StandardButton.Yes:
+                return
         self.close()
 
     def execAll(self):
@@ -1229,6 +1239,7 @@ class LoggerWindow(Window):
                 'max_num_backups': self.uiMaxNumBackupsSPIN.value(),
                 'max_recent_workboxes': self.uiMaxNumRecentWorkboxesSPIN.value(),
                 'closedWorkboxData': self.getClosedWorkboxData(),
+                'confirmBeforeClose': self.uiConfirmBeforeCloseCHK.isChecked(),
             }
         )
 
@@ -1503,6 +1514,9 @@ class LoggerWindow(Window):
         workboxHintingEnabled = pref.get('workboxHintingEnabled', True)
         self.uiWorkboxAutoCompleteEnabledCHK.setChecked(workboxHintingEnabled)
         self.setAutoCompleteEnabled(workboxHintingEnabled, console=False)
+
+        confirmBeforeClose = pref.get('confirmBeforeClose', True)
+        self.uiConfirmBeforeCloseCHK.setChecked(confirmBeforeClose)
 
         # Ensure the correct workbox stack page is shown
         self.update_workbox_stack()
