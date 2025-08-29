@@ -7,7 +7,7 @@ import textwrap
 
 import chardet
 from pathlib2 import Path
-from Qt.QtCore import Qt
+from Qt.QtCore import Qt, Signal
 from Qt.QtWidgets import QStackedWidget
 
 from ..prefs import (
@@ -62,6 +62,10 @@ class WorkboxMixin(object):
     _warning_text = None
     """When a user is picking this Workbox class, show a warning with this text."""
 
+    textChanged = Signal()
+    nameChanged = Signal()
+    workboxSaved = Signal()
+
     def __init__(
         self,
         parent=None,
@@ -85,6 +89,9 @@ class WorkboxMixin(object):
         self.__set_orphaned_by_instance__(False)
         self.__set_changed_by_instance__(False)
         self._changed_saved = False
+
+        self.textChanged.connect(self._tab_widget.tabBar().updateColorsAndToolTips)
+        self.workboxSaved.connect(self._tab_widget.tabBar().updateColorsAndToolTips)
 
     def __set_last_saved_text__(self, text):
         """Store text as last_saved_text on this workbox so checking if if_dirty
@@ -515,6 +522,8 @@ class WorkboxMixin(object):
 
         self.__set_last_workbox_name__(self.__workbox_name__())
         self.__set_last_saved_text__(self.__text__())
+
+        self.workboxSaved.emit()
 
         return ret
 

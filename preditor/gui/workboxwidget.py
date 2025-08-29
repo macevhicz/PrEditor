@@ -43,10 +43,12 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         else:
             self._workbox_id = WorkboxMixin.__create_workbox_id__(self.core_name)
 
-        self._filename_pref = filename
-        self._filename = filename
         self._backup_file = backup_file
         self._tempfile = tempfile
+        self._filename_pref = filename
+        self._filename = filename
+        if filename:
+            self.window().setFileWatchingEnabled(filename, True)
 
         # Store the software name so we can handle custom keyboard shortcuts based on
         # software
@@ -275,6 +277,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         else:
             # Send regular keystroke
             super(WorkboxWidget, self).keyPressEvent(event)
+            self.textChanged.emit()
 
     def initShortcuts(self):
         """Use this to set up shortcuts when the DocumentEditor"""
