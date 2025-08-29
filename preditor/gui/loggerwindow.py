@@ -293,6 +293,10 @@ class LoggerWindow(Window):
         self.uiClosePreferencesBTN.clicked.connect(self.update_workbox_stack)
         self.uiClosePreferencesBTN.clicked.connect(self.update_window_settings)
 
+        # Preferences
+        self.uiExtraTooltipInfoCHK.toggled.connect(self.updateTabColorsAndToolTips)
+        self.updateTabColorsAndToolTips()
+
         """Set various icons"""
         self.uiClearLogACT.setIcon(QIcon(resourcePath('img/close-thick.png')))
         self.uiNewWorkboxACT.setIcon(QIcon(resourcePath('img/file-plus.png')))
@@ -626,6 +630,7 @@ class LoggerWindow(Window):
         txt = "{} [{}/{}]".format(filename, idx, count)
         self.setStatusText(txt)
         self.autoHideStatusText()
+        self.updateTabColorsAndToolTips()
 
     def openSetPreferredTextEditorDialog(self):
         dlg = SetTextEditorPathDialog(parent=self)
@@ -1108,6 +1113,36 @@ class LoggerWindow(Window):
         path = prefs.prefs_path(name, core_name=self.name)
         return path
 
+    def indexOfWorkboxOrTabGroup(self, widget):
+        """For the given widget, the the index of it's tab widget that contains
+        it.
+
+        Args:
+            widget (GroupedTabWidget, WorkboxMixin): The workbox or tab group
+                for which to find it's index
+
+        Returns:
+            tabIdx (int, None): The found tab index or None
+        """
+        tabIdx = None
+        if not (widget.parent() and widget.parent().parent()):
+            return tabIdx
+
+        grandParent = widget.parent().parent()
+        for index in range(grandParent.count()):
+            curWidget = grandParent.widget(index)
+            if curWidget == widget:
+                tabIdx = index
+                break
+        return tabIdx
+
+    def updateTabColorsAndToolTips(self):
+        """Go thru all the tab groups and update their text color and toolTips."""
+        group = self.uiWorkboxTAB
+        for index in range(self.uiWorkboxTAB.count()):
+            grouped = group.widget(index)
+            grouped.tabBar().updateColorsAndToolTips()
+
     def linkedFileChanged(self, filename):
         """Slot for responding to the file watcher's signal. Handle updating this
         PrEditor instance accordingly.
@@ -1133,10 +1168,12 @@ class LoggerWindow(Window):
                     continue
                 if Path(editor.filename()).as_posix() == Path(filename).as_posix():
                     self.updateLink(editor)
+        self.updateTabColorsAndToolTips()
 
     def updateLink(self, editor):
-        """If an editor is linked to a file, update it here. Disable file monitoring
-        if the file no longer exists.
+        """If an editor is linked to a file, update it here. File monitoring
+        will automatically be deleted by QFileSystemWatcher if the file no
+        longer exists.
 
         Args:
             editor (WorkboxMixin): The editor which has potentially been updated.
@@ -1144,8 +1181,8 @@ class LoggerWindow(Window):
         filename = editor.filename()
         if Path(filename).is_file():
             editor.__load__(filename)
-        else:
-            editor.__set_file_monitoring_enabled__(False)
+
+        self.updateTabColorsAndToolTips()
 
     def closeEvent(self, event):
         self.recordPrefs()
@@ -1801,6 +1838,7 @@ class LoggerWindow(Window):
 
         # Notify widgets that the styleSheet has changed
         self.styleSheetChanged.emit(stylesheet)
+        self.updateTabColorsAndToolTips()
 
     def setCaseSensitive(self, state):
         """Set completer case-sensivity"""
