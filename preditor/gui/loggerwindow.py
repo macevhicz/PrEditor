@@ -328,6 +328,14 @@ class LoggerWindow(Window):
         self.uiExtraTooltipInfoCHK.toggled.connect(self.updateTabColorsAndToolTips)
         self.updateTabColorsAndToolTips()
 
+        # Code Highlighting
+        self.uiConsoleHighlightEnabledCHK.toggled.connect(
+            self.setConsoleHighlightEnabled
+        )
+
+    def setConsoleHighlightEnabled(self, state):
+        self.console().codeHighlighter().setEnabled(state)
+
     def setIcons(self):
         """Set various icons"""
         self.uiClearLogACT.setIcon(QIcon(resourcePath('img/close-thick.png')))
@@ -1337,6 +1345,9 @@ class LoggerWindow(Window):
                 'max_recent_workboxes': self.uiMaxNumRecentWorkboxesSPIN.value(),
                 'closedWorkboxData': self.getClosedWorkboxData(),
                 'confirmBeforeClose': self.uiConfirmBeforeCloseCHK.isChecked(),
+                'consoleHighlightEnabled': (
+                    self.uiConsoleHighlightEnabledCHK.isChecked()
+                ),
             }
         )
 
@@ -1586,6 +1597,10 @@ class LoggerWindow(Window):
         workboxHintingEnabled = pref.get('workboxHintingEnabled', True)
         self.uiWorkboxAutoCompleteEnabledCHK.setChecked(workboxHintingEnabled)
         self.setAutoCompleteEnabled(workboxHintingEnabled, console=False)
+
+        self.uiConsoleHighlightEnabledCHK.setChecked(
+            pref.get('consoleHighlightEnabled', True)
+        )
 
         # Max backups and recently closed workboxes
         max_recent_workboxes = pref.get('max_recent_workboxes', 25)
