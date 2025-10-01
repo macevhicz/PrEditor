@@ -54,6 +54,12 @@ class ConsolePrEdit(QTextEdit):
         pattern += r'line (?P<lineNum>\d{1,6}), in'
         self.workbox_pattern = re.compile(pattern)
 
+        # For workboxes, use this regex pattern, so we can extract workboxName
+        # and lineNum
+        pattern = r'File "<Workbox(?:Selection)?>:(?P<workboxName>.*)", '
+        pattern += r'line (?P<lineNum>\d{1,6}), in'
+        self.workbox_pattern = re.compile(pattern)
+
         # Define a pattern to capture info from tracebacks
         pattern = r'File "(?P<filename>.*)", line (?P<lineNum>\d{1,10}), in'
         self.traceback_pattern = re.compile(pattern)
