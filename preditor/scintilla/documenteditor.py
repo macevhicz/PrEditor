@@ -85,6 +85,7 @@ class DocumentEditor(QsciScintilla):
         self._filename = ''
         self.additionalFilenames = []
         self._language = ''
+        self._defaultLanguage = ""
         self._lastSearch = ''
         self._encoding = 'utf-8'
         self._fileMonitoringActive = False
@@ -272,7 +273,7 @@ class DocumentEditor(QsciScintilla):
     def closeEvent(self, event):
         self.disableTitleUpdate()
         # unsubcribe the file from the open file monitor
-        self.enableFileWatching(False)
+        self.__set_file_monitoring_enabled__(False)
         super(DocumentEditor, self).closeEvent(event)
 
     def closeEditor(self):
@@ -581,28 +582,6 @@ class DocumentEditor(QsciScintilla):
         if success:
             self.setPermaHighlight(text.split(' '))
 
-    def enableFileWatching(self, state):
-        """Enables/Disables open file change monitoring. If enabled, A dialog will pop
-        up when ever the open file is changed externally. If file monitoring is
-        disabled in the IDE settings it will be ignored.
-
-        Returns:
-            bool:
-        """
-        # if file monitoring is enabled and we have a file name then set up the file
-        # monitoring
-        window = self.window()
-        self._fileMonitoringActive = False
-        if hasattr(window, 'openFileMonitor'):
-            fm = window.openFileMonitor()
-            if fm:
-                if state:
-                    fm.addPath(self._filename)
-                    self._fileMonitoringActive = True
-                else:
-                    fm.removePath(self._filename)
-        return self._fileMonitoringActive
-
     def disableTitleUpdate(self):
         self.modificationChanged.connect(self.refreshTitle)
 
@@ -706,7 +685,7 @@ class DocumentEditor(QsciScintilla):
             self._encoding, text = WorkboxMixin.__open_file__(filename)
             self.setText(text)
             self.updateFilename(filename)
-            self.enableFileWatching(True)
+            self.__set_file_monitoring_enabled__(True)
             self.setEolMode(self.detectEndLine(self.text()))
             return True
         return False
@@ -1079,7 +1058,7 @@ class DocumentEditor(QsciScintilla):
             logger.debug(
                 'The file was deleted, But the user left it in the editor',
             )
-            self.enableFileWatching(False)
+            self.__set_file_monitoring_enabled__(False)
             return True
         logger.debug('Defaulting to reload message')
         return self.reloadDialog(
@@ -1160,12 +1139,13 @@ class DocumentEditor(QsciScintilla):
             self.saveAs(filename, setFilename=False)
         return ret
 
-    def saveAs(self, filename='', setFilename=True):
+    def saveAs(self, filename='', setFilename=True, directory=''):
         logger.debug(' Save As Called '.center(60, '-'))
-        newFile = False
+
+        # Disable file watching so workbox doesn't reload and scroll to the top
+        self.__set_file_monitoring_enabled__(False)
         if not filename:
-            newFile = True
-            filename = self.filename()
+            filename = self.filename() or directory
             filename, extFilter = Qt_py.QtCompat.QFileDialog.getSaveFileName(
                 self.window(), 'Save File as...', filename
             )
@@ -1189,8 +1169,8 @@ class DocumentEditor(QsciScintilla):
             # update the file
             if setFilename:
                 self.updateFilename(filename)
-                if newFile:
-                    self.enableFileWatching(True)
+                # Turn file watching back on.
+                self.__set_file_monitoring_enabled__(True)
             return True
         return False
 
@@ -1269,9 +1249,9 @@ class DocumentEditor(QsciScintilla):
             self.delayable_engine.delayables['spell_check'].reset_session(self)
 
     def setLexer(self, lexer):
-        font = self.documentFont
-        if lexer:
-            font = lexer.font(0)
+        font = self.__font__()
+        if lexer and font:
+            lexer.setFont(font)
         # Backup values destroyed when we set the lexer
         marginFont = self.marginsFont()
         folds = self.contractedFolds()
@@ -1305,10 +1285,8 @@ class DocumentEditor(QsciScintilla):
             QsciScintilla.SCI_SETWORDCHARS, wordCharacters.encode('utf8')
         )
 
-        if lexer:
-            lexer.setFont(font)
-        else:
-            self.setFont(font)
+        if font:
+            self.__set_font__(font)
 
     def setLineMarginWidth(self, width):
         self.setMarginWidth(self.SymbolMargin, width)
@@ -1730,12 +1708,13 @@ class DocumentEditor(QsciScintilla):
         filename = str(filename)
         extension = os.path.splitext(filename)[1]
 
-        # determine if we need to modify the language
-        if not self._filename or extension != os.path.splitext(self._filename)[1]:
+        if filename and extension != os.path.splitext(self._filename)[1]:
             self.setLanguage(lang.byExtension(extension))
+        elif not self._filename:
+            self.setLanguage(self._defaultLanguage)
 
         # update the filename information
-        self._filename = os.path.abspath(filename)
+        self._filename = os.path.abspath(filename) if filename else ""
         self.setModified(False)
 
         try:
