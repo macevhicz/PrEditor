@@ -180,17 +180,21 @@ class LoggerWindow(Window):
         self.uiCloseLoggerACT.triggered.connect(self.closeLoggerByAction)
 
         self.uiRunAllACT.triggered.connect(self.execAll)
-        # Even though the RunSelected actions (with shortcuts) are connected
-        # here, this only affects if the action is chosen from the menu. The
-        # shortcuts are always intercepted by the workbox document editor. To
-        # handle this, the workbox.keyPressEvent method will perceive the
-        # shortcut press, and call .execSelected, which will then ultimately call
-        # workbox.__exec_selected__
+        # Even though the RunSelected and Open Most Recently Closed Workbox
+        # actions (with shortcuts) are connected here, this only affects if the
+        # action is chosen from the menu. The shortcuts are always intercepted
+        # by the workbox document editor. To handle this, the
+        # workbox.keyPressEvent method will perceive the shortcut press, and
+        # call the correct method.
         self.uiRunSelectedACT.triggered.connect(
             partial(self.execSelected, truncate=True)
         )
         self.uiRunSelectedDontTruncateACT.triggered.connect(
             partial(self.execSelected, truncate=False)
+        )
+        # Closed workboxes
+        self.uiOpenMostRecentWorkboxACT.triggered.connect(
+            self.openMostRecentlyClosedWorkbox
         )
 
         self.uiConsoleAutoCompleteEnabledCHK.toggled.connect(
@@ -1767,13 +1771,22 @@ class LoggerWindow(Window):
                 data.append(datum)
         return data
 
-    def recentWorkboxActionTriggered(self):
+    def recentWorkboxActionTriggered(self, checked=None, action=None):
         """Slot for when user selects a Recently Closed Workbox. First, try to just show
         the workbox if it's currently open. If not, recreate it. In both cases, set
         focus on that workbox.
 
+        Args:
+            checked (bool, optional): If this is method is called as slot, the
+                arg 'checked' is automatically passed
+            action (QAction, optional): If this method is called by
+                openMostRecentlyClosedWorkbox, this is the determined most recent
+                workbox action.
+
         """
-        action = self.sender()
+        if action is None:
+            action = self.sender()
+
         workboxDatum = action.data()
         workbox_id = workboxDatum.get("workbox_id")
         workbox_filename = workboxDatum.get("filename")
@@ -1786,7 +1799,7 @@ class LoggerWindow(Window):
             groupName, workboxTitle = workbox_name.split("/")
             try:
                 self.uiWorkboxTAB.hide()
-                _, workbox_widget = self.uiWorkboxTAB.add_new_tab(
+                _, workbox = self.uiWorkboxTAB.add_new_tab(
                     groupName, workboxTitle, prefs=workboxDatum
                 )
             finally:
@@ -1794,7 +1807,7 @@ class LoggerWindow(Window):
 
             if not workbox_filename:
                 versionType = prefs.VersionTypes.Last
-                filename, idx, count = workbox_widget.__load_workbox_version_text__(
+                filename, idx, count = workbox.__load_workbox_version_text__(
                     versionType
                 )
 
@@ -1806,6 +1819,16 @@ class LoggerWindow(Window):
                 txt = "{} [{}/{}]".format(filename, idx, count)
                 self.setStatusText(txt)
                 self.autoHideStatusText()
+
+        if workbox is not None:
+            workbox.__tab_widget__().tabBar().updateColorsAndToolTips()
+
+    def openMostRecentlyClosedWorkbox(self):
+        """Restore the most recently closed workbox"""
+        actions = self.uiClosedWorkboxesMENU.actions()
+        if actions:
+            action = actions[0]
+            self.recentWorkboxActionTriggered(action=action)
 
     def setAutoCompleteEnabled(self, state, console=True):
         if console:

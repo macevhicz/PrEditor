@@ -775,7 +775,7 @@ Must be at least 1</string>
                                   <number>1</number>
                                  </property>
                                  <property name="maximum">
-                                  <number>99</number>
+                                  <number>999</number>
                                  </property>
                                  <property name="value">
                                   <number>25</number>
@@ -1083,6 +1083,9 @@ Must be at least 1</string>
      <string comment="File Menu">&amp;File</string>
     </property>
     <widget class="QMenu" name="uiClosedWorkboxesMENU">
+     <property name="toolTip">
+      <string/>
+     </property>
      <property name="title">
       <string>Recently Closed Workboxes</string>
      </property>
@@ -1096,6 +1099,7 @@ Must be at least 1</string>
     <addaction name="separator"/>
     <addaction name="uiClosedWorkboxesMENU"/>
     <addaction name="uiEmptyWorkboxRecycleBinACT"/>
+    <addaction name="uiOpenMostRecentWorkboxACT"/>
    </widget>
    <widget class="QMenu" name="uiHelpMENU">
     <property name="title">
@@ -2069,6 +2073,20 @@ at the indicated line in the specified text editor.
   <action name="uiEmptyWorkboxRecycleBinACT">
    <property name="text">
     <string>Empty Workbox Recycle Bin</string>
+   </property>
+   <property name="toolTip">
+    <string>Once a workbox is pruned off the Recently Closed Workboxes list
+(as determiend by Max Recently Closed Workboxes preference), it
+goes to the Workbox Recycle Bin.
+This button removes those (very old) workboxes.</string>
+   </property>
+  </action>
+  <action name="uiOpenMostRecentWorkboxACT">
+   <property name="text">
+    <string>Open most recently closed Workbox</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+T</string>
    </property>
   </action>
  </widget>
