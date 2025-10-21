@@ -148,6 +148,10 @@ class ConsolePrEdit(QTextEdit):
         # it on.
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
 
+        # Variable to store text cursor pos, so as not to move cursor when
+        # clicking a hyperlink.
+        self.textCursorPos = None
+
     def setCodeHighlighter(self, highlight):
         """Set the code highlighter for the console
 
@@ -225,6 +229,8 @@ class ConsolePrEdit(QTextEdit):
         check release position. If it's the same (ie user clicked vs click-drag to
         select text), we check if user clicked an error hyperlink.
         """
+        self.textCursorPos = self.textCursor().position()
+
         self.clickPos = event.pos()
         self.anchor = self.anchorAt(event.pos())
         if self.anchor:
@@ -237,13 +243,24 @@ class ConsolePrEdit(QTextEdit):
         """
         samePos = event.pos() == self.clickPos
         left = event.button() == Qt.MouseButton.LeftButton
+        isHyperlink = False
         if samePos and left and self.anchor:
-            self.errorHyperlink()
+            isHyperlink = self.errorHyperlink()
 
         self.clickPos = None
         self.anchor = None
+
         QApplication.restoreOverrideCursor()
-        return super(ConsolePrEdit, self).mouseReleaseEvent(event)
+        ret = super(ConsolePrEdit, self).mouseReleaseEvent(event)
+
+        # If user clicked a hyperlink, don't put cursor there. It's confusing.
+        if isHyperlink and self.textCursorPos:
+            cursor = self.textCursor()
+            cursor.setPosition(self.textCursorPos)
+            self.setTextCursor(cursor)
+        self.textCursorPos = None
+
+        return ret
 
     def keyReleaseEvent(self, event):
         """Override of keyReleaseEvent to determine when to end navigation of
@@ -262,6 +279,7 @@ class ConsolePrEdit(QTextEdit):
         The text editor defaults to SublimeText3, in the normal install directory
         """
         window = self.window()
+        isHyperlink = False
 
         # Bail if Error Hyperlinks setting is not turned on or we don't have an anchor.
         doHyperlink = (
@@ -270,7 +288,7 @@ class ConsolePrEdit(QTextEdit):
             and self.anchor
         )
         if not doHyperlink:
-            return
+            return isHyperlink
 
         # info is a comma separated string, in the form: "filename, workboxIdx, lineNum"
         info = self.anchor.split(', ')
@@ -294,19 +312,21 @@ class ConsolePrEdit(QTextEdit):
             if not exePath:
                 msg += "No text editor path defined."
                 print(msg)
-                return
+                return isHyperlink
             if not os.path.exists(exePath):
                 msg += "Text editor executable does not exist: {}".format(exePath)
                 print(msg)
-                return
+                return isHyperlink
             if not cmdTempl:
                 msg += "No text editor Command Prompt command template defined."
                 print(msg)
-                return
+                return isHyperlink
             if modulePath and not os.path.exists(modulePath):
                 msg += "Specified module path does not exist: {}".format(modulePath)
                 print(msg)
-                return
+                return isHyperlink
+
+        isHyperlink = bool(modulePath or workboxName)
 
         if modulePath:
             # Check if cmdTempl filepaths aren't wrapped in double=quotes to handle
@@ -341,6 +361,8 @@ class ConsolePrEdit(QTextEdit):
             lineNum = int(lineNum)
             workbox.__goto_line__(lineNum)
             workbox.setFocus()
+
+        return isHyperlink
 
     def getPrevCommand(self):
         """Find and display the previous command in stack"""
