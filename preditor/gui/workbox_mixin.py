@@ -154,6 +154,12 @@ class WorkboxMixin(object):
     def __set_auto_complete_enabled__(self, state):
         raise NotImplementedError("Mixin method not overridden.")
 
+    def __auto_reload_on_change__(self):
+        """If workbox is linked to file, and that file is updated externally,
+        should it auto-reload, or provide a confirmation dialog?
+        """
+        raise NotImplementedError("Mixin method not overridden.")
+
     def __clear__(self):
         raise NotImplementedError("Mixin method not overridden.")
 

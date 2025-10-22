@@ -73,6 +73,12 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         )
         self.setAutoCompletionSource(state)
 
+    def __auto_reload_on_change__(self):
+        """If workbox is linked to file, and that file is updated externally,
+        should it auto-reload, or provide a confirmation dialog?
+        """
+        return self.window().uiLinkedFilesAutoReloadCHK.isChecked()
+
     def __clear__(self):
         self.clear()
         self.__set_last_saved_text__(self.__text__())
@@ -154,6 +160,8 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         self.__set_last_saved_text__(self.__text__())
         self.__set_last_workbox_name__(self.__workbox_name__())
         self.__set_font__(font)
+
+        self.window().updateTabColorsAndToolTips()
 
     def __margins_font__(self):
         return self.marginsFont()
