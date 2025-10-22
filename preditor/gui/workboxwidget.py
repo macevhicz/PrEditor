@@ -271,6 +271,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         else:
             # Send regular keystroke
             super(WorkboxWidget, self).keyPressEvent(event)
+            self.textChanged.emit()
 
     def initShortcuts(self):
         """Use this to set up shortcuts when the DocumentEditor"""
