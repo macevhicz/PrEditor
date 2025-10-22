@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>895</width>
+    <width>861</width>
     <height>837</height>
    </rect>
   </property>
@@ -228,7 +228,7 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>875</width>
+              <width>841</width>
               <height>464</height>
              </rect>
             </property>
@@ -615,6 +615,40 @@
                              <widget class="QCheckBox" name="uiClearBeforeRunningCHK">
                               <property name="text">
                                <string>Clear console before running workbox code</string>
+                              </property>
+                             </widget>
+                            </item>
+                           </layout>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QGroupBox" name="uiPrefsInternalDebugGRP_2">
+                           <property name="title">
+                            <string>Workboxes linked to files on disk</string>
+                           </property>
+                           <layout class="QVBoxLayout" name="uiPrefsInternalDebugLYT_2">
+                            <property name="spacing">
+                             <number>0</number>
+                            </property>
+                            <property name="leftMargin">
+                             <number>3</number>
+                            </property>
+                            <property name="topMargin">
+                             <number>3</number>
+                            </property>
+                            <property name="rightMargin">
+                             <number>3</number>
+                            </property>
+                            <property name="bottomMargin">
+                             <number>3</number>
+                            </property>
+                            <item>
+                             <widget class="QCheckBox" name="uiLinkedFilesAutoReloadCHK">
+                              <property name="toolTip">
+                               <string>When a linked file is updated externally, should it automatically reload, or present a confirmation dialog?</string>
+                              </property>
+                              <property name="text">
+                               <string>Auto-Reload</string>
                               </property>
                              </widget>
                             </item>
@@ -1054,7 +1088,7 @@ Must be at least 1</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>895</width>
+     <width>861</width>
      <height>22</height>
     </rect>
    </property>

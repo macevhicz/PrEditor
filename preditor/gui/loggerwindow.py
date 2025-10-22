@@ -1335,6 +1335,7 @@ class LoggerWindow(Window):
                 'guiFont': self.font().toString(),
                 'consoleFont': self.console().font().toString(),
                 'autoSaveSettings': self.uiAutoSaveSettingsCHK.isChecked(),
+                'autoReloadLinked': self.uiLinkedFilesAutoReloadCHK.isChecked(),
                 'autoPrompt': self.uiAutoPromptCHK.isChecked(),
                 'errorHyperlinks': self.uiErrorHyperlinksCHK.isChecked(),
                 'uiStatusLbl_limit': self.uiStatusLBL.limit(),
@@ -1592,6 +1593,7 @@ class LoggerWindow(Window):
         self.uiSpellCheckEnabledCHK.setDisabled(False)
 
         self.uiAutoSaveSettingsCHK.setChecked(pref.get('autoSaveSettings', True))
+        self.uiLinkedFilesAutoReloadCHK.setChecked(pref.get('autoReloadLinked', False))
 
         self.uiAutoPromptCHK.setChecked(pref.get('autoPrompt', False))
         self.uiErrorHyperlinksCHK.setChecked(pref.get('errorHyperlinks', True))

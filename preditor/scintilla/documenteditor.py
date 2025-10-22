@@ -91,7 +91,6 @@ class DocumentEditor(QsciScintilla):
         self._marginsFont = self._defaultFont
         self._lastSearchDirection = SearchDirection.First
         self._saveTimer = 0.0
-        self._autoReloadOnChange = False
         self._enableFontResizing = True
         # QSci doesnt provide accessors to these values, so store them internally
         self._foldMarginBackgroundColor = QColor(224, 224, 224)
@@ -232,8 +231,11 @@ class DocumentEditor(QsciScintilla):
         if lineno:
             self.setCursorPosition(lineno, 0)
 
-    def autoReloadOnChange(self):
-        return self._autoReloadOnChange
+    def __auto_reload_on_change__(self):
+        """If workbox is linked to file, and that file is updated externally,
+        should it auto-reload, or provide a confirmation dialog?
+        """
+        pass
 
     def caretBackgroundColor(self):
         return self._caretBackgroundColor
@@ -1066,7 +1068,7 @@ class DocumentEditor(QsciScintilla):
     def reloadDialog(self, message, title='Reload File...'):
         if not self._dialogShown:
             self._dialogShown = True
-            if self.autoReloadOnChange() or not self.isModified():
+            if self.__auto_reload_on_change__() or not self.isModified():
                 result = QMessageBox.StandardButton.Yes
             else:
                 result = QMessageBox.question(
@@ -1770,9 +1772,6 @@ class DocumentEditor(QsciScintilla):
             if self._encoding:
                 text = 'Encoding: {enc} {text}'.format(enc=self._encoding, text=text)
             window.uiCursorInfoLBL.setText(text)
-
-    def setAutoReloadOnChange(self, state):
-        self._autoReloadOnChange = state
 
     def indentSelection(self, all=False):
         if all:
