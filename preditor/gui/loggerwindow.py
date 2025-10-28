@@ -297,9 +297,11 @@ class LoggerWindow(Window):
         self.uiClearBeforeRunningCHK.toggled.connect(self.setClearBeforeRunning)
         self.uiEditorVerticalCHK.toggled.connect(self.adjustWorkboxOrientation)
         self.uiEnvironmentVarsACT.triggered.connect(self.showEnvironmentVars)
-        self.uiBackupPreferencesACT.triggered.connect(self.backupPreferences)
-        self.uiBrowsePreferencesACT.triggered.connect(self.browsePreferences)
         self.uiAboutPreditorACT.triggered.connect(self.show_about)
+
+        # Prefs on disk
+        self.uiPrefsBrowseBTN.clicked.connect(self.browsePreferences)
+        self.uiPrefsBackupBTN.clicked.connect(self.backupPreferences)
 
         self.uiSetPreferredTextEditorPathACT.triggered.connect(
             self.openSetPreferredTextEditorDialog
