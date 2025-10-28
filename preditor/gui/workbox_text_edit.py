@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 import logging
+import re
 
 from Qt.QtGui import QFont, QFontMetrics, QTextCursor
 from Qt.QtWidgets import QTextEdit
 
+from .. import core
 from .codehighlighter import CodeHighlighter
 from .workbox_mixin import WorkboxMixin
 
@@ -34,18 +36,52 @@ class WorkboxTextEdit(WorkboxMixin, QTextEdit):
         core_name=None,
         **kwargs,
     ):
-        super(WorkboxTextEdit, self).__init__(parent=parent, core_name=core_name)
-        self._filename = None
-        self._encoding = None
-        self.__set_console__(console)
+        # initialize the super class
+        super().__init__(parent, delayable_engine=delayable_engine, core_name=core_name)
         highlight = CodeHighlighter(self, 'Python')
         self.uiCodeHighlighter = highlight
+
+        self.__set_console__(console)
+        self._searchFlags = 0
+        self._searchText = ''
+        self._searchDialog = None
+        self._encoding = None
+
+        # Set or create workbox_id
+        if workbox_id:
+            self._workbox_id = workbox_id
+        else:
+            self._workbox_id = WorkboxMixin.__create_workbox_id__(self.core_name)
+
+        self._filename_pref = filename
+        self._filename = filename
+        self._backup_file = backup_file
+        self._tempfile = tempfile
+
+        # Store the software name so we can handle custom keyboard shortcuts based on
+        # software
+        self._software = core.objectName()
+        # Used to remove any trailing whitespace when running selected text
+        self.regex = re.compile(r'\s+$')
+
+        if hasattr(self.window(), "setWorkboxFontBasedOnConsole"):
+            self.window().setWorkboxFontBasedOnConsole(workbox=self)
+
+        # MAYBE IMPLEMENT
+        # self.initShortcuts()
+        # self._defaultLanguage = "Python"
+        # self.setLanguage(self._defaultLanguage)
+        # self.setEolMode(QsciScintilla.EolMode.EolUnix)
 
     def __auto_complete_enabled__(self):
         pass
 
     def __set_auto_complete_enabled__(self, state):
         pass
+
+    def __clear__(self):
+        self.clear()
+        self.__set_last_saved_text__(self.__text__())
 
     def __copy_indents_as_spaces__(self):
         """When copying code, should it convert leading tabs to spaces?"""
@@ -67,6 +103,9 @@ class WorkboxTextEdit(WorkboxMixin, QTextEdit):
         txt = self.__text__().rstrip()
         title = self.__workbox_trace_title__()
         self.__console__().executeString(txt, filename=title)
+
+    def __filename__(self):
+        return self._filename
 
     def __font__(self):
         return self.font()

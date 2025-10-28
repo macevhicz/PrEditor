@@ -158,7 +158,7 @@ class WorkboxMixin(object):
         """If workbox is linked to file, and that file is updated externally,
         should it auto-reload, or provide a confirmation dialog?
         """
-        raise NotImplementedError("Mixin method not overridden.")
+        return self.window().uiLinkedFilesAutoReloadCHK.isChecked()
 
     def __clear__(self):
         raise NotImplementedError("Mixin method not overridden.")
@@ -227,7 +227,7 @@ class WorkboxMixin(object):
         """Returns True if this workbox supports file monitoring.
         This allows the editor to update its text if the linked
         file is changed on disk."""
-        raise NotImplementedError("Mixin method not overridden.")
+        return self.window().fileMonitoringEnabled(self.__filename__())
 
     def __set_file_monitoring_enabled__(self, state):
         """Enables/Disables open file change monitoring. If enabled, A dialog will pop
@@ -239,7 +239,7 @@ class WorkboxMixin(object):
         """
         # if file monitoring is enabled and we have a file name then set up the file
         # monitoring
-        raise NotImplementedError("Mixin method not overridden.")
+        self.window().setFileMonitoringEnabled(self.__filename__(), state)
 
     def __filename__(self):
         raise NotImplementedError("Mixin method not overridden.")

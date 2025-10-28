@@ -60,7 +60,7 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         # Default to unix newlines
         self.setEolMode(QsciScintilla.EolMode.EolUnix)
         if hasattr(self.window(), "setWorkboxFontBasedOnConsole"):
-            self.window().setWorkboxFontBasedOnConsole()
+            self.window().setWorkboxFontBasedOnConsole(workbox=self)
 
     def __auto_complete_enabled__(self):
         return self.autoCompletionSource() == QsciScintilla.AutoCompletionSource.AcsAll
@@ -72,12 +72,6 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
             else QsciScintilla.AutoCompletionSource.AcsNone
         )
         self.setAutoCompletionSource(state)
-
-    def __auto_reload_on_change__(self):
-        """If workbox is linked to file, and that file is updated externally,
-        should it auto-reload, or provide a confirmation dialog?
-        """
-        return self.window().uiLinkedFilesAutoReloadCHK.isChecked()
 
     def __clear__(self):
         self.clear()
@@ -104,12 +98,6 @@ class WorkboxWidget(WorkboxMixin, DocumentEditor):
         txt = self.__unix_end_lines__(self.text()).rstrip()
         title = self.__workbox_trace_title__()
         self.__console__().executeString(txt, filename=title)
-
-    def __file_monitoring_enabled__(self):
-        return self.window().fileMonitoringEnabled(self.__filename__())
-
-    def __set_file_monitoring_enabled__(self, state):
-        self.window().setFileMonitoringEnabled(self.__filename__(), state)
 
     def __filename__(self):
         return self.filename()

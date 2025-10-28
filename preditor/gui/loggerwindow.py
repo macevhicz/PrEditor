@@ -407,6 +407,7 @@ class LoggerWindow(Window):
             self.uiEditorChooserWGT.editor_name()
         )
         if editor_cls_name is None:
+            self.update_workbox_stack()
             return
         if editor_cls_name != self.editor_cls_name:
             self.editor_cls_name = editor_cls_name
