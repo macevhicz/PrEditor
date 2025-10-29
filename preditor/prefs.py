@@ -358,6 +358,13 @@ def update_prefs_args(core_name, prefs_dict, prefs_updates):
     Returns:
         prefs_dict (dict): The updated dict
     """
+
+    # Check if we have already updated to this prefs_update version
+    update_version = prefs_updates.get("prefs_version", 1.0)
+    prefs_version = prefs_dict.get("prefs_version", 1)
+    if prefs_version >= update_version:
+        return prefs_dict
+
     for old_name, data in prefs_updates.items():
         if old_name not in prefs_dict:
             continue
@@ -371,5 +378,7 @@ def update_prefs_args(core_name, prefs_dict, prefs_updates):
                         update_pref_args(core_name, tab_dict, sub_old_name, sub_data)
         else:
             update_pref_args(core_name, prefs_dict, old_name, data)
+
+    prefs_dict["prefs_version"] = update_version
 
     return prefs_dict
