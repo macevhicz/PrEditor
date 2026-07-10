@@ -183,6 +183,15 @@ class ConsolePrEdit(ConsoleBase):
         echoResult=False,
         truncate=False,
     ):
+        # Reset self.inInternalTraceLines to False. This must be done here in
+        # case a SyntaxError occurred in a previous code execution, in which
+        # case it won't have hit the normal `self.inInternalTraceLines = False
+        # line. It cannot be included in a `except SyntaxError` clause in the
+        # try/except block below (with `compiled = compile`), because that
+        # relies on non-eval-able code being caught, which always appears as a
+        # SyntaxError.
+        self.inInternalTraceLines = False
+
         # These vars helps with faking code lines in tracebacks for stdin input, which
         # workboxes are, and py3 doesn't include in the traceback
         self.consoleLine = consoleLine or ""
