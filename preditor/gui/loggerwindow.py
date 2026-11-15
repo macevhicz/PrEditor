@@ -205,7 +205,7 @@ class LoggerWindow(Window):
             partial(self.execSelected, truncate=False)
         )
         # Closed workboxes
-        self.uiOpenMostRecentWorkboxACT.triggered.connect(
+        self.uiOpenMostRecentClosedWorkboxACT.triggered.connect(
             self.openMostRecentlyClosedWorkbox
         )
 
@@ -1970,7 +1970,7 @@ class LoggerWindow(Window):
 
             action = self.uiClosedWorkboxesMENU.addAction(workbox_name)
             action.setData(workboxDatum)
-            action.triggered.connect(self.recentWorkboxActionTriggered)
+            action.triggered.connect(self.recentlyClosedWorkboxActionTriggered)
             action.setToolTip(tip)
 
     def getClosedWorkboxData(self):
@@ -1987,7 +1987,7 @@ class LoggerWindow(Window):
                 data.append(datum)
         return data
 
-    def recentWorkboxActionTriggered(self, checked=None, action=None):
+    def recentlyClosedWorkboxActionTriggered(self, checked=None, action=None):
         """Slot for when user selects a Recently Closed Workbox. First, try to just show
         the workbox if it's currently open. If not, recreate it. In both cases, set
         focus on that workbox.
@@ -2050,7 +2050,7 @@ class LoggerWindow(Window):
         actions = self.uiClosedWorkboxesMENU.actions()
         if actions:
             action = actions[0]
-            self.recentWorkboxActionTriggered(action=action)
+            self.recentlyClosedWorkboxActionTriggered(action=action)
 
     def setAutoCompleteEnabled(self, state, console=True):
         if console:
