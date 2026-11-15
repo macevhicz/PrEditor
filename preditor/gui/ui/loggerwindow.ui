@@ -1016,7 +1016,7 @@ Must be at least 1</string>
     <addaction name="uiRestartACT"/>
     <addaction name="separator"/>
     <addaction name="uiClosedWorkboxesMENU"/>
-    <addaction name="uiOpenMostRecentWorkboxACT"/>
+    <addaction name="uiOpenMostRecentClosedWorkboxACT"/>
     <addaction name="uiEmptyWorkboxRecycleBinACT"/>
     <addaction name="separator"/>
     <addaction name="uiCloseLoggerACT"/>
@@ -1855,7 +1855,7 @@ goes to the Workbox Recycle Bin.
 This button removes those (very old) workboxes.</string>
    </property>
   </action>
-  <action name="uiOpenMostRecentWorkboxACT">
+  <action name="uiOpenMostRecentClosedWorkboxACT">
    <property name="text">
     <string>Open most recently closed Workbox</string>
    </property>
