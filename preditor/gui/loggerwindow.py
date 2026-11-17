@@ -2412,6 +2412,7 @@ class LoggerWindow(Window):
         self.fuzzy_search.canceled.connect(update_tab)
         self.fuzzy_search.highlighted.connect(update_tab)
         self.fuzzy_search.popup()
+        self.fuzzy_search.focusLeft.connect(self.fuzzy_search._canceled)
 
     def current_workbox_changed(self):
         """When the current workbox has changed, handle adding it to the
