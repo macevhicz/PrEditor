@@ -1,9 +1,35 @@
 from __future__ import absolute_import
 
 import re
+from enum import Enum
 
 from Qt.QtCore import QSortFilterProxyModel, Qt
 from Qt.QtGui import QStandardItem, QStandardItemModel
+
+
+class FocusToNameMode(Enum):
+    """Define modes for the Focus To Name Fuzzy Search
+
+    Attributes:
+        NORMAL (int): Display the workboxes in the order they appear in PrEditor
+        RECENTS_ONLY (int): Display the recently used workboxes
+        RECENTS_FIRST (int): Display the recently used workboxes, followed by the
+            remaining workboxes in normal order.
+    """
+
+    NORMAL = 0
+    RECENTS_ONLY = 1
+    RECENTS_FIRST = 2
+
+    def displayName(self):
+        return self.name.replace('_', ' ').title()
+
+    def toolTip(self):
+        toolTipMap = {
+            'NORMAL': "Display all tabs in order",
+            'RECENTS_ONLY': "Display recent tabs in recent order",
+        }
+        return toolTipMap.get(self.name, "")
 
 
 class GroupTabItemModel(QStandardItemModel):
@@ -58,13 +84,44 @@ class GroupTabListItemModel(GroupTabItemModel):
     def flags(self, index):
         return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
-    def process(self):
+    def process(self, group_tab_mode=FocusToNameMode.NORMAL, recent_workbox_ids=None):
+        if recent_workbox_ids is None:
+            recent_workbox_ids = []
+
         root = self.invisibleRootItem()
         current_group = self.manager.currentIndex()
         current_tab = self.manager.currentWidget().currentIndex()
 
-        all_widgets = self.manager.all_widgets()
-        for _, group_name, tab_name, group_index, tab_index in all_widgets:
+        all_widget_infos = list(self.manager.all_widgets())
+
+        # Organize the list of workboxes to display.
+        # - Normal or Recents First - start with original list
+        # - Recents Only - start with blank list
+        if group_tab_mode == FocusToNameMode.NORMAL or not recent_workbox_ids:
+            display_widget_infos = all_widget_infos
+        else:
+            box_infos_by_id = {
+                box_info[0].__workbox_id__(): box_info for box_info in all_widget_infos
+            }
+            if group_tab_mode == FocusToNameMode.RECENTS_ONLY:
+                display_widget_infos = []
+            elif group_tab_mode == FocusToNameMode.RECENTS_FIRST:
+                display_widget_infos = all_widget_infos
+
+            # Since we are display recents, add them in reverse order, removing
+            # from original position if doing Recents First
+            recent_workbox_ids = list(reversed(recent_workbox_ids))
+            for recent_workbox_id in recent_workbox_ids:
+                box_info = box_infos_by_id.get(recent_workbox_id, None)
+                if box_info:
+                    if box_info in display_widget_infos:
+                        display_widget_infos.remove(box_info)
+                    display_widget_infos.insert(0, box_info)
+
+        # Now create the items, and note self.original_model_index when we
+        # encounter the current workbox's item.
+        for info in display_widget_infos:
+            _, group_name, tab_name, group_index, tab_index = info
             tab_item = QStandardItem('/'.join((group_name, tab_name)))
             tab_item.setData(group_index, self.GroupIndexRole)
             tab_item.setData(tab_index, self.TabIndexRole)

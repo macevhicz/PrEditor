@@ -43,7 +43,10 @@ from .. import (
 from ..delayable_engine import DelayableEngine
 from ..gui import Window, loadUi, tab_widget_for_tab
 from ..gui.fuzzy_search.fuzzy_search import FuzzySearch
-from ..gui.group_tab_widget.grouped_tab_models import GroupTabListItemModel
+from ..gui.group_tab_widget.grouped_tab_models import (
+    FocusToNameMode,
+    GroupTabListItemModel,
+)
 from ..logging_config import LoggingConfig
 from ..utils import Json, Truncate, stylesheets
 from .completer import CompleterMode
@@ -79,6 +82,8 @@ class LoggerWindow(Window):
         self._stylesheet = 'Bright'
 
         self.setupStatusTimer()
+
+        self.fuzzy_search = None
 
         # Define gui-resizing mods, which may need to be accessed by other modules.
         ctrl = Qt.KeyboardModifier.ControlModifier
@@ -144,6 +149,8 @@ class LoggerWindow(Window):
         self.maxRecentClosedWorkboxes = 20
         self.max_num_backups = 50
         self.dont_ask_again = []
+        self.recentlyUsedWorkboxes = []
+        self.focusToNameMode = FocusToNameMode.NORMAL
 
         # Load any plugins, and set window title
         self.loadPlugins()
@@ -243,6 +250,9 @@ class LoggerWindow(Window):
         self.uiIncreaseGuiFontSizeACT.triggered.connect(
             partial(self.adjustFontSize, "Gui", 1)
         )
+
+        # Workbox current index changed
+        self.uiWorkboxTAB.current_workbox_changed.connect(self.current_workbox_changed)
 
         # Workbox add/remove
         self.uiNewWorkboxACT.triggered.connect(
@@ -403,6 +413,30 @@ class LoggerWindow(Window):
         action.setObjectName('uiCycleModeACT')
         action.setShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_M))
         action.triggered.connect(self.cycleCompleterMode)
+
+        # Setup ability to cycle FocusToName mode, and create action for each mode
+        self.focusToNameModeCycle = itertools.cycle(FocusToNameMode)
+        # create FocusMode submenu
+        defaultMode = next(self.focusToNameModeCycle)
+        for mode in FocusToNameMode:
+            modeName = mode.displayName()
+            action = self.uiFocusToNameModeMENU.addAction(modeName)
+
+            action.setObjectName('ui{}ModeACT'.format(modeName))
+            action.setData(mode)
+            action.setCheckable(True)
+            action.setChecked(mode == defaultMode)
+            focusNameMode = FocusToNameMode(mode)
+            action.setToolTip(focusNameMode.toolTip())
+            action.triggered.connect(partial(self.selectFocusToNameMode, action))
+        # Completer mode actions
+        self.uiFocusToNameModeMENU.addSeparator()
+        action = self.uiFocusToNameModeMENU.addAction('Cycle Focus Name mode')
+        action.setObjectName('uiCycleFocusToNameModeACT')
+        action.setShortcut(
+            QKeySequence(Qt.Modifier.CTRL | Qt.Modifier.SHIFT | Qt.Key.Key_P)
+        )
+        action.triggered.connect(self.cycleFocusToNameMode)
 
         # add stylesheet menu options.
         for style_name in stylesheets.stylesheets():
@@ -1442,6 +1476,9 @@ class LoggerWindow(Window):
         pref = copy.deepcopy(origPref)
         geo = self.geometry()
 
+        max_recent_used_boxes = self.uiMaxRecentlyUsedWorkboxesSPIN.value()
+        recentlyUsedWorkboxes = self.recentlyUsedWorkboxes[:max_recent_used_boxes]
+
         pref.update(
             {
                 'loggergeom': [geo.x(), geo.y(), geo.width(), geo.height()],
@@ -1486,6 +1523,9 @@ class LoggerWindow(Window):
                 'max_num_backups': self.uiMaxNumBackupsSPIN.value(),
                 'max_recent_workboxes': self.uiMaxNumRecentWorkboxesSPIN.value(),
                 'closedWorkboxData': self.getClosedWorkboxData(),
+                'maxRecentlyUsedWorkboxes': self.uiMaxRecentlyUsedWorkboxesSPIN.value(),
+                "recentlyUsedWorkboxes": recentlyUsedWorkboxes,
+                "focusToNameMode": self.focusToNameMode.name,
                 'confirmBeforeClose': self.uiConfirmBeforeCloseCHK.isChecked(),
                 'displayExtraTooltipInfo': self.uiExtraTooltipInfoCHK.isChecked(),
                 'consoleHighlightEnabled': (
@@ -1817,6 +1857,18 @@ class LoggerWindow(Window):
         closedWorkboxData = pref.get('closedWorkboxData', [])
         self.buildClosedWorkBoxMenu(closedWorkboxData=closedWorkboxData)
 
+        # Recently used workboxes
+        maxRecentlyUsedWorkboxes = pref.get('maxRecentlyUsedWorkboxes', 10)
+        self.uiMaxRecentlyUsedWorkboxesSPIN.setValue(maxRecentlyUsedWorkboxes)
+        recentlyUsedWorkboxes = pref.get('recentlyUsedWorkboxes', [])
+        self.recentlyUsedWorkboxes = recentlyUsedWorkboxes[:maxRecentlyUsedWorkboxes]
+
+        # focusToNameMode
+        focusToNameModeName = pref.get('focusToNameMode', None)
+        if focusToNameModeName:
+            self.focusToNameMode = FocusToNameMode[focusToNameModeName]
+            self.cycleToFocusToNameMode(self.focusToNameMode)
+
         confirmBeforeClose = pref.get('confirmBeforeClose', True)
         self.uiConfirmBeforeCloseCHK.setChecked(confirmBeforeClose)
 
@@ -1987,6 +2039,16 @@ class LoggerWindow(Window):
                 data.append(datum)
         return data
 
+    def prune_recently_used_workboxes(self):
+        existing_box_ids = [
+            box_info[0].__workbox_id__() for box_info in self.uiWorkboxTAB.all_widgets()
+        ]
+        self.recentlyUsedWorkboxes = [
+            box_id
+            for box_id in self.recentlyUsedWorkboxes
+            if box_id in existing_box_ids
+        ]
+
     def recentlyClosedWorkboxActionTriggered(self, checked=None, action=None):
         """Slot for when user selects a Recently Closed Workbox. First, try to just show
         the workbox if it's currently open. If not, recreate it. In both cases, set
@@ -2152,10 +2214,10 @@ class LoggerWindow(Window):
 
     # Completer Modes
     def cycleCompleterMode(self):
-        """Cycle comleter mode"""
+        """Cycle completer mode"""
         completerMode = next(self.completerModeCycle)
         self.setCompleterMode(completerMode)
-        self.reportCompleterModeChange(completerMode)
+        self.reportModeChange("Completer", completerMode)
 
     def cycleToCompleterMode(self, completerMode):
         """
@@ -2198,15 +2260,63 @@ class LoggerWindow(Window):
         self.cycleToCompleterMode(mode)
         self.setCompleterMode(mode)
 
+    # FocusToName Modes
+    def selectFocusToNameMode(self, action):
+        if not action.isChecked():
+            action.setChecked(True)
+            return
+        """
+        Handle when completer mode is chosen via menu
+        Will sync mode iterator and set the completion mode
+        Args:
+        action: the menu action associated with the chosen mode
+        """
+
+        # update cycleFocusToNameMode to current Mode
+        mode = action.data()
+        self.cycleToFocusToNameMode(mode)
+        self.setFocusToNameMode(mode)
+
+    def cycleFocusToNameMode(self):
+        """Cycle completer mode"""
+        focusToNameMode = next(self.focusToNameModeCycle)
+        self.setFocusToNameMode(focusToNameMode)
+        self.reportModeChange("Focus To Name", focusToNameMode)
+
+    def cycleToFocusToNameMode(self, focusToNameMode):
+        """
+        Syncs the focusToNameModeCycle iterator to currently chosen focusToNameMode
+        Args:
+        focusToNameMode: Chosen CompleterMode ENUM member
+        """
+        for _ in range(len(FocusToNameMode)):
+            tempMode = next(self.focusToNameModeCycle)
+            if tempMode == focusToNameMode:
+                break
+
+    def setFocusToNameMode(self, focusToNameMode):
+        """
+        Set the completer mode to chosen mode
+        Args:
+        focusToNameMode: Chosen CompleterMode ENUM member
+        """
+        self.focusToNameMode = focusToNameMode
+
+        for action in self.uiFocusToNameModeMENU.actions():
+            action.setChecked(action.data() == focusToNameMode)
+
+        if self.fuzzy_search and self.fuzzy_search.isVisible():
+            self.show_focus_name()
+
     def reportCaseChange(self, state):
         """Update status text with current Case Sensitivity Mode"""
         text = "Case Sensitive " if state else "Case Insensitive "
         self.setStatusText(text)
         self.autoHideStatusText()
 
-    def reportCompleterModeChange(self, mode):
+    def reportModeChange(self, name, mode):
         """Update status text with current Completer Mode"""
-        self.setStatusText('Completer Mode: {} '.format(mode.displayName()))
+        self.setStatusText(f'{name} Mode: {mode.displayName()} ')
         self.autoHideStatusText()
 
     def setClearBeforeRunning(self, state):
@@ -2267,19 +2377,66 @@ class LoggerWindow(Window):
 
     @Slot()
     def show_focus_name(self):
+        if self.fuzzy_search and self.fuzzy_search.isVisible():
+            self.fuzzy_search._canceled()
+
         model = GroupTabListItemModel(manager=self.uiWorkboxTAB)
-        model.process()
+
+        group_tab_mode = self.focusToNameMode
+
+        # Make sure current workbox is in recents.
+        workbox_id = self.current_workbox().__workbox_id__()
+        if workbox_id not in self.recentlyUsedWorkboxes:
+            self.recentlyUsedWorkboxes.insert(0, workbox_id)
+
+        # Trim to only show max recently used workboxes
+        maxRecentlyUsedWorkboxes = self.uiMaxRecentlyUsedWorkboxesSPIN.value()
+        recent_workbox_ids = self.recentlyUsedWorkboxes[:maxRecentlyUsedWorkboxes]
+
+        model.process(
+            group_tab_mode=group_tab_mode,
+            recent_workbox_ids=recent_workbox_ids,
+        )
 
         def update_tab(index):
             group, tab = model.workbox_indexes_from_model_index(index)
             if group is not None:
                 self.uiWorkboxTAB.set_current_groups_from_index(group, tab)
 
-        w = FuzzySearch(model, parent=self)
-        w.selected.connect(update_tab)
-        w.canceled.connect(update_tab)
-        w.highlighted.connect(update_tab)
-        w.popup()
+        def tab_selected(index):
+            update_tab(index)
+            self.current_workbox_changed()
+
+        self.fuzzy_search = FuzzySearch(model, parent=self)
+        self.fuzzy_search.selected.connect(tab_selected)
+        self.fuzzy_search.canceled.connect(update_tab)
+        self.fuzzy_search.highlighted.connect(update_tab)
+        self.fuzzy_search.popup()
+
+    def current_workbox_changed(self):
+        """When the current workbox has changed, handle adding it to the
+        recently user workbox list, unless the Focus To Name popup is showing,
+        because that means the user is just browsing the workboxes and hasn't
+        yet chosen one.
+        """
+        cur_workbox = self.current_workbox()
+        if cur_workbox is None:
+            return
+
+        in_fuzzy_search = self.fuzzy_search and self.fuzzy_search.isVisible()
+        if in_fuzzy_search:
+            return
+
+        workbox_id = cur_workbox.__workbox_id__()
+        if workbox_id in self.recentlyUsedWorkboxes:
+            self.recentlyUsedWorkboxes.remove(workbox_id)
+        self.recentlyUsedWorkboxes.insert(0, workbox_id)
+
+        maxRecentlyUsedWorkboxes = self.uiMaxRecentlyUsedWorkboxesSPIN.value()
+        trimmed = self.recentlyUsedWorkboxes[:maxRecentlyUsedWorkboxes]
+        self.recentlyUsedWorkboxes = trimmed
+
+        self.prune_recently_used_workboxes()
 
     def updateCopyIndentsAsSpaces(self):
         for workbox, _, _, _, _ in self.uiWorkboxTAB.all_widgets():
