@@ -2,8 +2,15 @@ from __future__ import absolute_import
 
 from functools import partial
 
-from Qt.QtCore import QModelIndex, QPoint, Qt, Signal
-from Qt.QtWidgets import QFrame, QLineEdit, QListView, QShortcut, QVBoxLayout
+from Qt.QtCore import QModelIndex, QPoint, Qt, QTimer, Signal
+from Qt.QtWidgets import (
+    QAbstractItemView,
+    QFrame,
+    QLineEdit,
+    QListView,
+    QShortcut,
+    QVBoxLayout,
+)
 
 from ..group_tab_widget.grouped_tab_models import GroupTabFuzzyFilterProxyModel
 
@@ -50,11 +57,30 @@ class FuzzySearch(QFrame):
         lyt.addWidget(self.uiResultsLIST)
 
         self.original_model_index = model.original_model_index
+        self.uiResultsLIST.setCurrentIndex(self.original_model_index)
+
+        # Scroll to current item. Use single shot, because since the list was
+        # just filled in, the view may not have laid out its items yet.
+        QTimer.singleShot(
+            0,
+            lambda: self.uiResultsLIST.scrollTo(
+                self.original_model_index, QAbstractItemView.PositionAtCenter
+            ),
+        )
+
+        self.uiResultsLIST.selectionModel().selectionChanged.connect(
+            self.onSelectionChanged
+        )
 
     def activated(self):
         current = self.uiResultsLIST.currentIndex()
-        self.selected.emit(current)
+
+        # Hide FuzzySearch before emitting signal, because the recently_used_workbox
+        # functionality will only update the recents list if fuzzySearch is not
+        # visible. This is so the recents list is not updated as user scrolls
+        # through choices, but is if/when they make a selection).
         self.hide()
+        self.selected.emit(current)
 
     def increment_selection(self, direction):
         current = self.uiResultsLIST.currentIndex()
@@ -65,7 +91,6 @@ class FuzzySearch(QFrame):
             row = current.row() + direction
         new = self.uiResultsLIST.model().index(row, col)
         self.uiResultsLIST.setCurrentIndex(new)
-        self.highlighted.emit(new)
 
     def update_completer(self, wildcard):
         if wildcard:
@@ -95,3 +120,10 @@ class FuzzySearch(QFrame):
         self.show()
         self.reposition()
         self.uiLineEDIT.setFocus(Qt.FocusReason.PopupFocusReason)
+
+    def onSelectionChanged(self):
+        """If the selection has changed, either by clicking an item or scrolling
+        up/down via keyboard shortcuts, emit the 'highlight' signal.
+        """
+        idx = self.uiResultsLIST.currentIndex()
+        self.highlighted.emit(idx)
