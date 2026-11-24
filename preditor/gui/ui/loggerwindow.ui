@@ -500,15 +500,15 @@
                         <property name="title">
                          <string>Tracebacks</string>
                         </property>
-                        <layout class="QVBoxLayout" name="uiPrefsTracebacksLYT">
+                        <layout class="QVBoxLayout" name="verticalLayout_10">
                          <property name="spacing">
-                          <number>0</number>
+                          <number>3</number>
                          </property>
                          <property name="leftMargin">
                           <number>3</number>
                          </property>
                          <property name="topMargin">
-                          <number>3</number>
+                          <number>0</number>
                          </property>
                          <property name="rightMargin">
                           <number>3</number>
@@ -517,17 +517,85 @@
                           <number>3</number>
                          </property>
                          <item>
-                          <widget class="QCheckBox" name="uiErrorHyperlinksCHK">
-                           <property name="text">
-                            <string>Error hyperlinks</string>
+                          <widget class="QGroupBox" name="uiInternalCodeGRP">
+                           <property name="title">
+                            <string> Internal PrEditor Traceback</string>
                            </property>
+                           <layout class="QVBoxLayout" name="verticalLayout_2">
+                            <property name="spacing">
+                             <number>3</number>
+                            </property>
+                            <property name="leftMargin">
+                             <number>3</number>
+                            </property>
+                            <property name="topMargin">
+                             <number>0</number>
+                            </property>
+                            <property name="rightMargin">
+                             <number>3</number>
+                            </property>
+                            <property name="bottomMargin">
+                             <number>3</number>
+                            </property>
+                            <item>
+                             <widget class="QCheckBox" name="uiHideInternalTracebackCHK">
+                              <property name="text">
+                               <string>Hide internal PrEditor traceback</string>
+                              </property>
+                              <property name="autoExclusive">
+                               <bool>false</bool>
+                              </property>
+                             </widget>
+                            </item>
+                            <item>
+                             <widget class="QCheckBox" name="uiSeparateTracebackCHK">
+                              <property name="text">
+                               <string>Visually separate internal PrEditor traceback</string>
+                              </property>
+                              <property name="autoExclusive">
+                               <bool>true</bool>
+                              </property>
+                             </widget>
+                            </item>
+                           </layout>
                           </widget>
                          </item>
                          <item>
-                          <widget class="QCheckBox" name="uiSeparateTracebackCHK">
-                           <property name="text">
-                            <string>Visually separate internal PrEditor traceback</string>
+                          <widget class="QGroupBox" name="uiHyperlinksGRP">
+                           <property name="title">
+                            <string> Hyperlinks</string>
                            </property>
+                           <layout class="QVBoxLayout" name="verticalLayout">
+                            <property name="spacing">
+                             <number>3</number>
+                            </property>
+                            <property name="leftMargin">
+                             <number>3</number>
+                            </property>
+                            <property name="topMargin">
+                             <number>0</number>
+                            </property>
+                            <property name="rightMargin">
+                             <number>3</number>
+                            </property>
+                            <property name="bottomMargin">
+                             <number>3</number>
+                            </property>
+                            <item>
+                             <widget class="QCheckBox" name="uiErrorHyperlinksCHK">
+                              <property name="text">
+                               <string>Show error hyperlinks</string>
+                              </property>
+                             </widget>
+                            </item>
+                            <item>
+                             <widget class="QCheckBox" name="uiInhibitInternalLinksCHK">
+                              <property name="text">
+                               <string>Inhibit hyperlinks for internal traceback</string>
+                              </property>
+                             </widget>
+                            </item>
+                           </layout>
                           </widget>
                          </item>
                         </layout>
@@ -619,30 +687,7 @@
                          <property name="spacing">
                           <number>3</number>
                          </property>
-                         <item row="0" column="1">
-                          <widget class="QSpinBox" name="uiMaxNumRecentWorkboxesSPIN">
-                           <property name="sizePolicy">
-                            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                             <horstretch>0</horstretch>
-                             <verstretch>0</verstretch>
-                            </sizepolicy>
-                           </property>
-                           <property name="toolTip">
-                            <string>Set the maximun number of backup files on disk per workbox.
-Must be at least 1</string>
-                           </property>
-                           <property name="minimum">
-                            <number>1</number>
-                           </property>
-                           <property name="maximum">
-                            <number>999</number>
-                           </property>
-                           <property name="value">
-                            <number>25</number>
-                           </property>
-                          </widget>
-                         </item>
-                         <item row="2" column="0">
+                         <item row="3" column="0">
                           <widget class="QLabel" name="label">
                            <property name="toolTip">
                             <string>'If running code in the logger takes X seconds or longer,
@@ -657,19 +702,10 @@ Must be at least 1</string>
                            </property>
                           </widget>
                          </item>
-                         <item row="2" column="1">
-                          <widget class="QDoubleSpinBox" name="uiFlashTimeSPIN">
-                           <property name="toolTip">
-                            <string>'If running code in the logger takes X seconds or longer,
- the window will flash if it is not in focus.
- Setting the value to zero will disable flashing.'</string>
-                           </property>
-                          </widget>
-                         </item>
-                         <item row="0" column="0">
+                         <item row="1" column="0">
                           <widget class="QLabel" name="label_3">
                            <property name="toolTip">
-                            <string>Set the maximun number of backup files on disk per workbox.
+                            <string>Set the maximun number of recently closed workboxes.
 Must be at least 1</string>
                            </property>
                            <property name="text">
@@ -680,7 +716,30 @@ Must be at least 1</string>
                            </property>
                           </widget>
                          </item>
-                         <item row="1" column="0">
+                         <item row="1" column="1">
+                          <widget class="QSpinBox" name="uiMaxNumRecentWorkboxesSPIN">
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="toolTip">
+                            <string>Set the maximun number of recently closed workboxes.
+Must be at least 1</string>
+                           </property>
+                           <property name="minimum">
+                            <number>1</number>
+                           </property>
+                           <property name="maximum">
+                            <number>999</number>
+                           </property>
+                           <property name="value">
+                            <number>25</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="2" column="0">
                           <widget class="QLabel" name="label_2">
                            <property name="toolTip">
                             <string>Set the maximun number of backup files on disk per workbox.
@@ -694,7 +753,16 @@ Must be at least 1</string>
                            </property>
                           </widget>
                          </item>
-                         <item row="1" column="1">
+                         <item row="3" column="1">
+                          <widget class="QDoubleSpinBox" name="uiFlashTimeSPIN">
+                           <property name="toolTip">
+                            <string>'If running code in the logger takes X seconds or longer,
+ the window will flash if it is not in focus.
+ Setting the value to zero will disable flashing.'</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="2" column="1">
                           <widget class="QSpinBox" name="uiMaxNumBackupsSPIN">
                            <property name="toolTip">
                             <string>Set the maximun number of backup files on disk per workbox.
@@ -705,6 +773,43 @@ Must be at least 1</string>
                            </property>
                            <property name="maximum">
                             <number>999</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="1">
+                          <widget class="QSpinBox" name="uiMaxRecentlyUsedWorkboxesSPIN">
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="toolTip">
+                            <string>Set the maximun number of recently used workboxes.
+Must be at least 1</string>
+                           </property>
+                           <property name="minimum">
+                            <number>1</number>
+                           </property>
+                           <property name="maximum">
+                            <number>999</number>
+                           </property>
+                           <property name="value">
+                            <number>10</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="0">
+                          <widget class="QLabel" name="uiMaxNumRecentlyUsedWorkboxesLBL">
+                           <property name="toolTip">
+                            <string>Set the maximun number of recently used workboxes.
+Must be at least 1</string>
+                           </property>
+                           <property name="text">
+                            <string>Max recently used workboxes</string>
+                           </property>
+                           <property name="alignment">
+                            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                            </property>
                           </widget>
                          </item>
@@ -948,7 +1053,7 @@ Must be at least 1</string>
     <addaction name="uiRestartACT"/>
     <addaction name="separator"/>
     <addaction name="uiClosedWorkboxesMENU"/>
-    <addaction name="uiOpenMostRecentWorkboxACT"/>
+    <addaction name="uiOpenMostRecentClosedWorkboxACT"/>
     <addaction name="uiEmptyWorkboxRecycleBinACT"/>
     <addaction name="separator"/>
     <addaction name="uiCloseLoggerACT"/>
@@ -976,47 +1081,6 @@ Must be at least 1</string>
     <addaction name="separator"/>
     <addaction name="uiClearToLastPromptACT"/>
     <addaction name="uiRunFirstWorkboxACT"/>
-   </widget>
-   <widget class="QMenu" name="uiOptionsMENU">
-    <property name="title">
-     <string>&amp;Options</string>
-    </property>
-    <widget class="QMenu" name="uiStyleMENU">
-     <property name="title">
-      <string>Style</string>
-     </property>
-    </widget>
-    <widget class="QMenu" name="uiCompleterModeMENU">
-     <property name="title">
-      <string>Auto-Complete Mode</string>
-     </property>
-     <addaction name="separator"/>
-    </widget>
-    <widget class="QMenu" name="uiSelectFontsMENU">
-     <property name="title">
-      <string>Select Font</string>
-     </property>
-     <addaction name="uiSelectMonospaceFontACT"/>
-     <addaction name="uiSelectProportionalFontACT"/>
-     <addaction name="uiSelectAllFontACT"/>
-    </widget>
-    <addaction name="uiPreferencesACT"/>
-    <addaction name="separator"/>
-    <addaction name="uiAutoCompleteCaseSensitiveACT"/>
-    <addaction name="uiCompleterModeMENU"/>
-    <addaction name="separator"/>
-    <addaction name="uiClearLogACT"/>
-    <addaction name="separator"/>
-    <addaction name="uiSelectFontsMENU"/>
-    <addaction name="uiSelectGuiFontsMENU"/>
-    <addaction name="uiDecreaseCodeFontSizeACT"/>
-    <addaction name="uiIncreaseCodeFontSizeACT"/>
-    <addaction name="uiDecreaseGuiFontSizeACT"/>
-    <addaction name="uiIncreaseGuiFontSizeACT"/>
-    <addaction name="uiStyleMENU"/>
-    <addaction name="separator"/>
-    <addaction name="uiSetPreferredTextEditorPathACT"/>
-    <addaction name="uiSetWorkboxEditorACT"/>
    </widget>
    <widget class="QMenu" name="uiEditMENU">
     <property name="title">
@@ -1150,6 +1214,54 @@ Must be at least 1</string>
     <property name="title">
      <string>Workbox</string>
     </property>
+   </widget>
+   <widget class="QMenu" name="uiOptionsMENU">
+    <property name="title">
+     <string>&amp;Options</string>
+    </property>
+    <widget class="QMenu" name="uiStyleMENU">
+     <property name="title">
+      <string>Style</string>
+     </property>
+    </widget>
+    <widget class="QMenu" name="uiCompleterModeMENU">
+     <property name="title">
+      <string>Auto-Complete Mode</string>
+     </property>
+     <addaction name="separator"/>
+    </widget>
+    <widget class="QMenu" name="uiSelectFontsMENU">
+     <property name="title">
+      <string>Select Font</string>
+     </property>
+     <addaction name="uiSelectMonospaceFontACT"/>
+     <addaction name="uiSelectProportionalFontACT"/>
+     <addaction name="uiSelectAllFontACT"/>
+    </widget>
+    <widget class="QMenu" name="uiFocusToNameModeMENU">
+     <property name="title">
+      <string>Focus To Name Mode</string>
+     </property>
+    </widget>
+    <addaction name="uiPreferencesACT"/>
+    <addaction name="separator"/>
+    <addaction name="uiFocusToNameModeMENU"/>
+    <addaction name="separator"/>
+    <addaction name="uiAutoCompleteCaseSensitiveACT"/>
+    <addaction name="uiCompleterModeMENU"/>
+    <addaction name="separator"/>
+    <addaction name="uiClearLogACT"/>
+    <addaction name="separator"/>
+    <addaction name="uiSelectFontsMENU"/>
+    <addaction name="uiSelectGuiFontsMENU"/>
+    <addaction name="uiDecreaseCodeFontSizeACT"/>
+    <addaction name="uiIncreaseCodeFontSizeACT"/>
+    <addaction name="uiDecreaseGuiFontSizeACT"/>
+    <addaction name="uiIncreaseGuiFontSizeACT"/>
+    <addaction name="uiStyleMENU"/>
+    <addaction name="separator"/>
+    <addaction name="uiSetPreferredTextEditorPathACT"/>
+    <addaction name="uiSetWorkboxEditorACT"/>
    </widget>
    <addaction name="uiFileMENU"/>
    <addaction name="uiEditMENU"/>
@@ -1770,7 +1882,10 @@ Must be at least 1</string>
   </action>
   <action name="uiPreferencesACT">
    <property name="text">
-    <string>Preferences</string>
+    <string>Toggle Preferences</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+,</string>
    </property>
   </action>
   <action name="uiEmptyWorkboxRecycleBinACT">
@@ -1784,7 +1899,7 @@ goes to the Workbox Recycle Bin.
 This button removes those (very old) workboxes.</string>
    </property>
   </action>
-  <action name="uiOpenMostRecentWorkboxACT">
+  <action name="uiOpenMostRecentClosedWorkboxACT">
    <property name="text">
     <string>Open most recently closed Workbox</string>
    </property>
@@ -1855,7 +1970,7 @@ This button removes those (very old) workboxes.</string>
    <sender>uiPreferencesACT</sender>
    <signal>triggered()</signal>
    <receiver>PrEditorWindow</receiver>
-   <slot>show_preferences()</slot>
+   <slot>toggle_preferences()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>

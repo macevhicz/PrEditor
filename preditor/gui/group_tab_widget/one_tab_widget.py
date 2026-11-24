@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import re
 
+from Qt.QtCore import Signal
 from Qt.QtWidgets import QTabWidget
 
 TAB_ITERATION_PATTERN = re.compile(r"(\d+)(?!.*\d)")
@@ -17,9 +18,25 @@ class OneTabWidget(QTabWidget):
     widget to add and the title of the tab to create if implemented.
     """
 
+    current_workbox_changed = Signal()
+
     def __init__(self, *args, **kwargs):
         super(OneTabWidget, self).__init__(*args, **kwargs)
         self.tabCloseRequested.connect(self.close_tab)
+
+        self.currentChanged.connect(self.handle_current_changed)
+
+    def handle_current_changed(self):
+        """If the current index has changed, emit a signal that the main window
+        can connect to. This could be a GroupedTabWidget, so in that case, emit
+        from it's tab_widget (ie it's parent tab widget). This way we only have
+        to connect a single signal in the main window.
+        """
+
+        if hasattr(self, "tab_widget"):
+            self.tab_widget().current_workbox_changed.emit()
+        else:
+            self.current_workbox_changed.emit()
 
     def get_next_available_tab_name(self, name):
         """Get the next available tab name, incrementing an iteration if needed.
