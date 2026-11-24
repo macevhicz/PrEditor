@@ -159,6 +159,7 @@ class LoggerWindow(Window):
 
         self.setWorkboxFontBasedOnConsole()
         self.setEditorChooserFontBasedOnConsole()
+        self.handleTracebackPrefUi()
 
         self.setup_run_workbox()
 
@@ -346,6 +347,11 @@ class LoggerWindow(Window):
         # Preferences
         self.uiExtraTooltipInfoCHK.toggled.connect(self.updateTabColorsAndToolTips)
 
+        self.uiHideInternalTracebackCHK.clicked.connect(self.handleTracebackPrefUi)
+        self.uiSeparateTracebackCHK.clicked.connect(self.handleTracebackPrefUi)
+        self.uiErrorHyperlinksCHK.clicked.connect(self.handleTracebackPrefUi)
+        self.uiInhibitInternalLinksCHK.clicked.connect(self.handleTracebackPrefUi)
+
         # Code Highlighting
         self.uiConsoleHighlightEnabledCHK.toggled.connect(
             self.setConsoleHighlightEnabled
@@ -411,6 +417,18 @@ class LoggerWindow(Window):
         self.openFileMonitor = QFileSystemWatcher(self)
         self.openFileMonitor.fileChanged.connect(self.linkedFileChanged)
         self.setFileMonitoringEnabled(self.prefsPath(), True)
+
+    def handleTracebackPrefUi(self):
+        """Adjust preferences gui items related to tracebacks. Enabled / Disable
+        some checkboxes depending on other ones.
+        """
+        showInternalTraceback = not self.uiHideInternalTracebackCHK.isChecked()
+        showErrorHyperLinks = self.uiErrorHyperlinksCHK.isChecked()
+
+        self.uiSeparateTracebackCHK.setEnabled(showInternalTraceback)
+        self.uiInhibitInternalLinksCHK.setEnabled(
+            showInternalTraceback and showErrorHyperLinks
+        )
 
     @Slot()
     def apply_options(self):
@@ -1445,11 +1463,14 @@ class LoggerWindow(Window):
                 'autoSaveSettings': self.autoSaveEnabled(),
                 'promptOnLinkedChange': self.promptOnLinkedChange(),
                 'autoPrompt': self.uiAutoPromptCHK.isChecked(),
-                'errorHyperlinks': self.uiErrorHyperlinksCHK.isChecked(),
                 'uiStatusLbl_limit': self.uiStatusLBL.limit(),
                 'textEditorPath': self.textEditorPath,
                 'textEditorCmdTempl': self.textEditorCmdTempl,
+                # Tracebacks
+                'errorHyperlinks': self.uiErrorHyperlinksCHK.isChecked(),
+                'inhibitInternalLinks': self.uiInhibitInternalLinksCHK.isChecked(),
                 'separateTraceback': self.uiSeparateTracebackCHK.isChecked(),
+                'hideInternalTraceback': self.uiHideInternalTracebackCHK.isChecked(),
                 'currentStyleSheet': self._stylesheet,
                 'flash_time': self.uiFlashTimeSPIN.value(),
                 'find_files_regex': self.uiFindInWorkboxesWGT.uiRegexBTN.isChecked(),
@@ -1734,7 +1755,6 @@ class LoggerWindow(Window):
         self.setAutoSaveEnabled(pref.get('autoSaveSettings', True))
         self.setPromptOnLinkedChange(pref.get('promptOnLinkedChange', True))
         self.uiAutoPromptCHK.setChecked(pref.get('autoPrompt', False))
-        self.uiErrorHyperlinksCHK.setChecked(pref.get('errorHyperlinks', True))
         self.uiStatusLBL.setLimit(pref.get('uiStatusLbl_limit', 5))
 
         # Find Files settings
@@ -1755,7 +1775,15 @@ class LoggerWindow(Window):
         self.textEditorPath = pref.get('textEditorPath', defaultExePath)
         self.textEditorCmdTempl = pref.get('textEditorCmdTempl', defaultCmd)
 
+        # Tracebacks
+        self.uiErrorHyperlinksCHK.setChecked(pref.get('errorHyperlinks', True))
+        self.uiInhibitInternalLinksCHK.setChecked(
+            pref.get('inhibitInternalLinks', True)
+        )
         self.uiSeparateTracebackCHK.setChecked(pref.get('separateTraceback', True))
+        self.uiHideInternalTracebackCHK.setChecked(
+            pref.get('hideInternalTraceback', True)
+        )
 
         self.uiWordWrapCHK.setChecked(pref.get('wordWrap', True))
         self.setWordWrap(self.uiWordWrapCHK.isChecked())
